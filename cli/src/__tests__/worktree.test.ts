@@ -54,6 +54,7 @@ const ORIGINAL_ENV = { ...process.env };
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
 const itEmbeddedPostgres = embeddedPostgresSupport.supported ? it : it.skip;
 const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const EMBEDDED_POSTGRES_WORKTREE_TIMEOUT = process.platform === "win32" ? 120_000 : 60_000;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -417,7 +418,7 @@ describe("worktree helpers", () => {
       await db.$client?.end?.({ timeout: 5 }).catch(() => undefined);
       await tempDb.cleanup();
     }
-  }, 60_000);
+  }, EMBEDDED_POSTGRES_WORKTREE_TIMEOUT);
 
   it("copies the source local_encrypted secrets key into the seeded worktree instance", () => {
     const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-worktree-secrets-"));
@@ -600,7 +601,7 @@ describe("worktree helpers", () => {
         fs.rmSync(tempRoot, { recursive: true, force: true });
       }
     },
-    60_000,
+    EMBEDDED_POSTGRES_WORKTREE_TIMEOUT,
   );
 
   it("avoids ports already claimed by sibling worktree instance configs", async () => {

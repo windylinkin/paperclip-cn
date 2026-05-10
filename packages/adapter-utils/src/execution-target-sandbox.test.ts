@@ -24,6 +24,25 @@ function resolveTestPosixShellCommand(command: "bash" | "sh") {
   return candidates.find((candidate) => existsSync(candidate)) ?? "sh";
 }
 
+function createChildProcessEnv(overrides?: Record<string, string>) {
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined) env[key] = value;
+  }
+  return { ...env, ...overrides };
+}
+
+function augmentTestPosixPath(env: Record<string, string>) {
+  if (process.platform !== "win32") return;
+  const entries = [
+    "/usr/bin",
+    "/bin",
+    "C:\\Program Files\\Git\\usr\\bin",
+    "C:\\Program Files\\Git\\bin",
+  ].filter((entry) => entry.startsWith("/") || existsSync(entry));
+  env.PATH = [...entries, env.PATH ?? ""].join(path.delimiter);
+}
+
 function rewriteWindowsPathsForGitShell(script: string) {
   if (process.platform !== "win32") return script;
   return script.replace(/([A-Za-z]):\\([^'"\s]*)/g, (_match, drive: string, rest: string) =>
@@ -62,12 +81,20 @@ describe("sandbox adapter execution targets", () => {
             ? resolveTestPosixShellCommand(input.command)
             : input.command;
         const args = [...(input.args ?? [])];
-        if ((input.command === "sh" || input.command === "bash") && args[0] === "-lc" && typeof args[1] === "string") {
+        const env = createChildProcessEnv(input.env);
+        if (input.command === "sh" || input.command === "bash") {
+          augmentTestPosixPath(env);
+        }
+        if (
+          (input.command === "sh" || input.command === "bash") &&
+          (args[0] === "-c" || args[0] === "-lc") &&
+          typeof args[1] === "string"
+        ) {
           args[1] = rewriteWindowsPathsForGitShell(args[1]);
         }
         return runChildProcess(`sandbox-run-${counter}`, command, args, {
           cwd: input.cwd ?? process.cwd(),
-          env: input.env ?? {},
+          env,
           stdin: input.stdin,
           timeoutSec: Math.max(1, Math.ceil((input.timeoutMs ?? 30_000) / 1000)),
           graceSec: 5,
@@ -159,7 +186,7 @@ describe("sandbox adapter execution targets", () => {
 
     expect(runner.execute).toHaveBeenCalledWith(expect.objectContaining({
       command: "sh",
-      args: ["-lc", 'printf %s "$HOME"'],
+      args: ["-c", 'printf %s "$HOME"'],
       cwd: "/workspace",
       timeoutMs: 7000,
     }));
@@ -307,7 +334,7 @@ describe("sandbox adapter execution targets", () => {
 
     expect(runner.execute).toHaveBeenCalledWith(expect.objectContaining({
       command: "bash",
-      args: ["-lc", 'printf %s "$HOME"'],
+      args: ["-c", 'printf %s "$HOME"'],
       cwd: "/workspace",
       timeoutMs: 7000,
     }));

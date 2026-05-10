@@ -51,6 +51,9 @@ vi.mock("../adapters/index.ts", async () => {
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
 const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const embeddedPostgresTimeoutMs = process.platform === "win32" ? 60_000 : 20_000;
+const adapterStartTimeoutMs = process.platform === "win32" ? 150_000 : 60_000;
+const maxConcurrentRunsTestTimeoutMs = process.platform === "win32" ? 180_000 : 75_000;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -93,7 +96,7 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
     db = createDb(tempDb.connectionString);
     heartbeat = heartbeatService(db);
     await ensureIssueRelationsTable(db);
-  }, 20_000);
+  }, embeddedPostgresTimeoutMs);
 
   afterEach(async () => {
     mockAdapterExecute.mockReset();
@@ -502,7 +505,10 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
         return run?.status === "running";
       });
       expect(firstRunStarted).toBe(true);
-      const firstAdapterStarted = await waitForCondition(async () => mockAdapterExecute.mock.calls.length === 1, 60_000);
+      const firstAdapterStarted = await waitForCondition(
+        async () => mockAdapterExecute.mock.calls.length === 1,
+        adapterStartTimeoutMs,
+      );
       expect(firstAdapterStarted).toBe(true);
 
       const secondWake = await heartbeat.wakeup(agentId, {
@@ -545,7 +551,7 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
     } finally {
       finishFirstRun();
     }
-  }, 75_000);
+  }, maxConcurrentRunsTestTimeoutMs);
 
   it("cancels stale queued runs when issue blockers are still unresolved", async () => {
     const companyId = randomUUID();

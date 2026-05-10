@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { CompanySecret, EnvBinding } from "@penclipai/shared";
-import { X } from "lucide-react";
+import type { CompanySecret, EnvBinding, SecretVersionSelector } from "@penclipai/shared";
+import { AlertCircle, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../lib/utils";
 
@@ -12,15 +12,20 @@ type Row = {
   source: "plain" | "secret";
   plainValue: string;
   secretId: string;
+  version: SecretVersionSelector;
 };
+
+function emptyRow(): Row {
+  return { key: "", source: "plain", plainValue: "", secretId: "", version: "latest" };
+}
 
 function toRows(rec: Record<string, EnvBinding> | null | undefined): Row[] {
   if (!rec || typeof rec !== "object") {
-    return [{ key: "", source: "plain", plainValue: "", secretId: "" }];
+    return [emptyRow()];
   }
   const entries = Object.entries(rec).map(([key, binding]) => {
     if (typeof binding === "string") {
-      return { key, source: "plain" as const, plainValue: binding, secretId: "" };
+      return { key, source: "plain" as const, plainValue: binding, secretId: "", version: "latest" as const };
     }
     if (
       typeof binding === "object" &&
@@ -28,12 +33,16 @@ function toRows(rec: Record<string, EnvBinding> | null | undefined): Row[] {
       "type" in binding &&
       (binding as { type?: unknown }).type === "secret_ref"
     ) {
-      const record = binding as { secretId?: unknown };
+      const record = binding as { secretId?: unknown; version?: unknown };
+      const version: SecretVersionSelector = typeof record.version === "number"
+        ? record.version
+        : "latest";
       return {
         key,
         source: "secret" as const,
         plainValue: "",
         secretId: typeof record.secretId === "string" ? record.secretId : "",
+        version,
       };
     }
     if (
@@ -48,11 +57,12 @@ function toRows(rec: Record<string, EnvBinding> | null | undefined): Row[] {
         source: "plain" as const,
         plainValue: typeof record.value === "string" ? record.value : "",
         secretId: "",
+        version: "latest" as const,
       };
     }
-    return { key, source: "plain" as const, plainValue: "", secretId: "" };
+    return { key, source: "plain" as const, plainValue: "", secretId: "", version: "latest" as const };
   });
-  return [...entries, { key: "", source: "plain", plainValue: "", secretId: "" }];
+  return [...entries, emptyRow()];
 }
 
 export function EnvVarEditor({
@@ -91,7 +101,7 @@ export function EnvVarEditor({
       if (!key) continue;
       if (row.source === "secret") {
         if (row.secretId) {
-          rec[key] = { type: "secret_ref", secretId: row.secretId, version: "latest" };
+          rec[key] = { type: "secret_ref", secretId: row.secretId, version: row.version };
         } else {
           rec[key] = { type: "plain", value: row.plainValue };
         }
@@ -104,13 +114,15 @@ export function EnvVarEditor({
   }
 
   function updateRow(index: number, patch: Partial<Row>) {
-    const withPatch = rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row));
+    const withPatch: Row[] = rows.map((row, rowIndex) =>
+      rowIndex === index ? { ...row, ...patch, version: patch.version ?? row.version } : row,
+    );
     if (
       withPatch[withPatch.length - 1].key ||
       withPatch[withPatch.length - 1].plainValue ||
       withPatch[withPatch.length - 1].secretId
     ) {
-      withPatch.push({ key: "", source: "plain", plainValue: "", secretId: "" });
+      withPatch.push(emptyRow());
     }
     setRows(withPatch);
     emit(withPatch);
@@ -124,7 +136,7 @@ export function EnvVarEditor({
       next[next.length - 1].plainValue ||
       next[next.length - 1].secretId
     ) {
-      next.push({ key: "", source: "plain", plainValue: "", secretId: "" });
+      next.push(emptyRow());
     }
     setRows(next);
     emit(next);
@@ -198,16 +210,50 @@ export function EnvVarEditor({
             {row.source === "secret" ? (
               <>
                 <select
-                  className={cn(inputClass, "flex-[3] bg-background")}
+                  className={cn(inputClass, "flex-[3] bg-background", row.secretId && !secrets.some((s) => s.id === row.secretId) && "border-destructive text-destructive")}
                   value={row.secretId}
                   onChange={(event) => updateRow(index, { secretId: event.target.value })}
                 >
                   <option value="">{t("agentConfig.selectSecret", { defaultValue: "Select secret..." })}</option>
+                  {row.secretId && !secrets.some((s) => s.id === row.secretId) ? (
+                    <option value={row.secretId}>
+                      {t("agentConfig.missingSecretOption", {
+                        defaultValue: "Missing ({{id}}...)",
+                        id: row.secretId.slice(0, 8),
+                      })}
+                    </option>
+                  ) : null}
                   {secrets.map((secret) => (
                     <option key={secret.id} value={secret.id}>
                       {secret.name}
+                      {secret.status !== "active" ? ` (${secret.status})` : ""}
                     </option>
                   ))}
+                </select>
+                <select
+                  className={cn(inputClass, "flex-[1] bg-background")}
+                  value={row.version === "latest" ? "latest" : String(row.version)}
+                  onChange={(event) => {
+                    const raw = event.target.value;
+                    updateRow(index, { version: raw === "latest" ? "latest" : Number.parseInt(raw, 10) });
+                  }}
+                  disabled={!row.secretId}
+                  aria-label={t("agentConfig.secretVersion", { defaultValue: "Version" })}
+                >
+                  <option value="latest">latest</option>
+                  {(() => {
+                    const selected = secrets.find((s) => s.id === row.secretId);
+                    if (!selected) return null;
+                    return Array.from({ length: Math.max(0, selected.latestVersion) }, (_, idx) => {
+                      const version = selected.latestVersion - idx;
+                      if (version <= 0) return null;
+                      return (
+                        <option key={version} value={version}>
+                          v{version}
+                        </option>
+                      );
+                    });
+                  })()}
                 </select>
                 <button
                   type="button"
@@ -257,9 +303,44 @@ export function EnvVarEditor({
         );
       })}
       {sealError && <p className="text-[11px] text-destructive">{sealError}</p>}
+      {(() => {
+        const issues: { key: string; reason: string }[] = [];
+        for (const row of rows) {
+          if (row.source !== "secret" || !row.secretId) continue;
+          const secret = secrets.find((s) => s.id === row.secretId);
+          if (!secret) {
+            issues.push({ key: row.key.trim() || row.secretId, reason: "missing" });
+          } else if (secret.status !== "active") {
+            issues.push({ key: row.key.trim() || secret.name, reason: secret.status });
+          }
+        }
+        if (!issues.length) return null;
+        return (
+          <p className="text-[11px] text-amber-700 dark:text-amber-400 inline-flex items-start gap-1">
+            <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
+            <span>
+              {t("agentConfig.secretBindingsNeedAttention", {
+                defaultValue: "{{count}} secret binding needs attention:",
+                count: issues.length,
+              })}{" "}
+              {issues.map((issue, idx) => (
+                <span key={idx} className="font-mono">
+                  {issue.key}
+                  <span className="text-muted-foreground"> ({issue.reason})</span>
+                  {idx < issues.length - 1 ? ", " : ""}
+                </span>
+              ))}
+              . {t("agentConfig.secretBindingsRemapHint", {
+                defaultValue: "Runs will fail until you remap or re-enable.",
+              })}
+            </span>
+          </p>
+        );
+      })()}
       <p className="text-[11px] text-muted-foreground/60">
-        {t("agentConfig.paperclipEnvVarsInjectedAutomatically", {
-          defaultValue: "PAPERCLIP_* variables are injected automatically at runtime.",
+        {t("agentConfig.envVarEditorHelp", {
+          defaultValue:
+            "Set KEY to the env var name the process expects, for example GH_TOKEN. Choose Secret to resolve a stored value at run start. PAPERCLIP_* variables are injected automatically.",
         })}
       </p>
     </div>

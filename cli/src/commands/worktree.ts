@@ -80,6 +80,8 @@ import {
   type PlannedIssueInsert,
 } from "./worktree-merge-history-lib.js";
 
+const WORKTREE_RESTORE_CONNECT_TIMEOUT_SECONDS = process.platform === "win32" ? 30 : 5;
+
 type WorktreeInitOptions = {
   name?: string;
   color?: string;
@@ -1363,6 +1365,7 @@ async function seedWorktreeDatabase(input: {
     await runDatabaseRestore({
       connectionString: targetConnectionString,
       backupFile: backup.backupFile,
+      connectTimeoutSeconds: WORKTREE_RESTORE_CONNECT_TIMEOUT_SECONDS,
     });
     await applyPendingMigrations(targetConnectionString);
     const executionQuarantine = input.preserveLiveWork

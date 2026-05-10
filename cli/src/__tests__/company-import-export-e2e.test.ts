@@ -15,6 +15,9 @@ import { createStoredZipArchive } from "./helpers/zip.js";
 const execFileAsync = promisify(execFile);
 type ServerProcess = ReturnType<typeof spawn>;
 const PNPM_COMMAND = "pnpm";
+const SERVER_HEALTHCHECK_TIMEOUT_MS = process.platform === "win32" ? 90_000 : 30_000;
+const SERVER_SETUP_TIMEOUT_MS = process.platform === "win32" ? 120_000 : 60_000;
+const COMPANY_IMPORT_EXPORT_TIMEOUT_MS = process.platform === "win32" ? 180_000 : 90_000;
 
 function execPnpm(args: string[], options: Parameters<typeof execFileAsync>[2]) {
   if (process.platform === "win32") {
@@ -285,7 +288,7 @@ async function waitForServer(
   output: { stdout: string[]; stderr: string[] },
 ) {
   const startedAt = Date.now();
-  while (Date.now() - startedAt < 30_000) {
+  while (Date.now() - startedAt < SERVER_HEALTHCHECK_TIMEOUT_MS) {
     if (child.exitCode !== null) {
       throw new Error(
         `penclip run exited before healthcheck succeeded.\nstdout:\n${output.stdout.join("")}\nstderr:\n${output.stderr.join("")}`,
@@ -357,7 +360,7 @@ describeEmbeddedPostgres("penclip company import/export e2e", () => {
     });
 
     await waitForServer(apiBase, child, output);
-  }, 60_000);
+  }, SERVER_SETUP_TIMEOUT_MS);
 
   afterAll(async () => {
     await stopServerProcess(serverProcess);
@@ -652,5 +655,5 @@ describeEmbeddedPostgres("penclip company import/export e2e", () => {
 
     expect(importedFromZip.company.action).toBe("created");
     expect(importedFromZip.agents.some((agent) => agent.action === "created")).toBe(true);
-  }, 90_000);
+  }, COMPANY_IMPORT_EXPORT_TIMEOUT_MS);
 });

@@ -83,9 +83,9 @@ Server prompt behavior:
 Examples:
 
 ```sh
-pnpm paperclipai onboard --yes
-pnpm paperclipai onboard --yes --bind lan
-pnpm paperclipai run --bind tailnet
+pnpm penclip onboard --yes
+pnpm penclip onboard --yes --bind lan
+pnpm penclip run --bind tailnet
 ```
 
 `configure --section server` follows the same interactive behavior.

@@ -48,10 +48,10 @@ pnpm penclip allowed-hostname dotta-macbook-pro
 Bring up the default local SSH fixture for environment testing:
 
 ```sh
-pnpm paperclipai env-lab up
-pnpm paperclipai env-lab doctor
-pnpm paperclipai env-lab status --json
-pnpm paperclipai env-lab down
+pnpm penclip env-lab up
+pnpm penclip env-lab doctor
+pnpm penclip env-lab status --json
+pnpm penclip env-lab down
 ```
 
 All client commands support:
@@ -142,6 +142,32 @@ Example for shortname-based local setup:
 pnpm penclip agent local-cli codexcoder --company-id <company-id>
 pnpm penclip agent local-cli claudecoder --company-id <company-id>
 ```
+
+## Secrets Commands
+
+```sh
+pnpm penclip secrets list --company-id <company-id>
+pnpm penclip secrets declarations --company-id <company-id> [--include agents,projects] [--kind secret]
+pnpm penclip secrets create --company-id <company-id> --name anthropic-api-key --value-env ANTHROPIC_API_KEY
+pnpm penclip secrets link --company-id <company-id> --name prod-stripe-key --provider aws_secrets_manager --external-ref <provider-ref>
+pnpm penclip secrets doctor --company-id <company-id>
+pnpm penclip secrets migrate-inline-env --company-id <company-id> [--apply]
+```
+
+Secret listing and declarations never print secret values. `create` accepts
+`--value-env` so shell history does not capture the value. `link` records
+provider-owned references without copying the secret value into Paperclip.
+For AWS-backed secrets, `secrets doctor` reports missing non-secret provider
+env and the expected AWS SDK runtime credential source; do not store AWS
+bootstrap credentials in Paperclip secrets.
+
+Per-company provider vaults (multiple vault instances per provider, default
+vault selection, coming-soon GCP/Vault) are configured from the board UI under
+`Company Settings → Secrets → Provider vaults` or through
+`/api/companies/{companyId}/secret-provider-configs`. There is no CLI surface
+for vault management today. See the
+[secrets deploy guide](../docs/deploy/secrets.md#provider-vaults) and
+[API reference](../docs/api/secrets.md#provider-vaults) for the contract.
 
 ## Approval Commands
 

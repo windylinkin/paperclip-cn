@@ -8,6 +8,7 @@ vi.unmock("node:http");
 const agentId = "11111111-1111-4111-8111-111111111111";
 const companyId = "22222222-2222-4222-8222-222222222222";
 const keyId = "33333333-3333-4333-8333-333333333333";
+const routeAuthorizationTestTimeoutMs = process.platform === "win32" ? 15_000 : 10_000;
 
 const baseAgent = {
   id: agentId,
@@ -373,5 +374,5 @@ describe.sequential("agent cross-tenant route authorization", () => {
     expect(res.body.error).toContain("Key not found");
     expect(mockAgentService.getKeyById).toHaveBeenCalledWith(keyId);
     expect(mockAgentService.revokeKey).not.toHaveBeenCalled();
-  });
+  }, routeAuthorizationTestTimeoutMs);
 });
