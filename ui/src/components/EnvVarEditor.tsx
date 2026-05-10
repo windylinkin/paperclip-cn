@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CompanySecret, EnvBinding, SecretVersionSelector } from "@penclipai/shared";
 import { AlertCircle, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { translateStatusLabel } from "../lib/i18n-labels";
 import { cn } from "../lib/utils";
 
 const inputClass =
@@ -226,7 +227,7 @@ export function EnvVarEditor({
                   {secrets.map((secret) => (
                     <option key={secret.id} value={secret.id}>
                       {secret.name}
-                      {secret.status !== "active" ? ` (${secret.status})` : ""}
+                      {secret.status !== "active" ? ` (${translateStatusLabel(t, secret.status)})` : ""}
                     </option>
                   ))}
                 </select>
@@ -240,7 +241,7 @@ export function EnvVarEditor({
                   disabled={!row.secretId}
                   aria-label={t("agentConfig.secretVersion", { defaultValue: "Version" })}
                 >
-                  <option value="latest">latest</option>
+                  <option value="latest">{t("secretBindingPicker.latest", { defaultValue: "latest" })}</option>
                   {(() => {
                     const selected = secrets.find((s) => s.id === row.secretId);
                     if (!selected) return null;

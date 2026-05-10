@@ -7,10 +7,14 @@ const STATUS_TRANSLATION_KEYS: Record<string, string> = {
   backlog: "status.backlog",
   blocked: "status.blocked",
   cancelled: "status.cancelled",
+  coming_soon: "status.comingSoon",
   done: "status.done",
+  deleted: "status.deleted",
+  disabled: "status.disabled",
   error: "status.error",
   failed: "status.failed",
   queued: "status.queued",
+  ready: "status.ready",
   idle: "status.idle",
   in_progress: "status.inProgress",
   in_review: "status.inReview",
@@ -26,6 +30,7 @@ const STATUS_TRANSLATION_KEYS: Record<string, string> = {
   timed_out: "status.timedOut",
   terminated: "status.terminated",
   todo: "status.todo",
+  warning: "status.warning",
 };
 
 const PRIORITY_TRANSLATION_KEYS: Record<string, string> = {

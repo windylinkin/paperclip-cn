@@ -187,7 +187,7 @@ test("collectInternalDependencyProblems flags missing npm alias targets", () => 
   ]);
 
   assert.deepEqual(collectInternalDependencyProblems(manifest, packageDocsByName), [
-    "dependencies requires @paperclipai/plugin-sdk@npm:@penclipai/plugin-sdk@2026.505.1 (alias target @penclipai/plugin-sdk@2026.505.1), but npm does not expose @penclipai/plugin-sdk@2026.505.1",
+    "dependencies requires @paperclipai/plugin-sdk@npm:@penclipai/plugin-sdk@2026.505.1 (alias target @penclipai/plugin-sdk@2026.505.1), but npm does not expose that version",
   ]);
 });
 
