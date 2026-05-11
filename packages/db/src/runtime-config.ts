@@ -1,11 +1,14 @@
 import { existsSync, readFileSync } from "node:fs";
-import os from "node:os";
 import path from "node:path";
+import {
+  expandHomePrefix,
+  resolveDefaultEmbeddedPostgresDir,
+  resolveHomeAwarePath,
+  resolvePaperclipConfigPathForInstance,
+  resolvePaperclipEnvPathForConfig,
+} from "@penclipai/shared/home-paths";
 
-const DEFAULT_INSTANCE_ID = "default";
 const CONFIG_BASENAME = "config.json";
-const ENV_BASENAME = ".env";
-const INSTANCE_ID_RE = /^[a-zA-Z0-9_-]+$/;
 const DESKTOP_TEMP_INSTANCE_PATH_RE = /paperclip-desktop-(?:smoke|acceptance)-/i;
 
 type PartialConfig = {
@@ -35,65 +38,6 @@ export type ResolvedDatabaseTarget =
       configPath: string;
       envPath: string;
     };
-
-function expandHomePrefix(value: string): string {
-  if (value === "~") return os.homedir();
-  if (value.startsWith("~/")) return path.resolve(os.homedir(), value.slice(2));
-  return value;
-}
-
-function isPathInsideDir(candidatePath: string, parentDir: string): boolean {
-  const resolvedCandidate = path.resolve(candidatePath);
-  const resolvedParent = path.resolve(parentDir);
-  const relative = path.relative(resolvedParent, resolvedCandidate);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
-}
-
-function isFreshDesktopTempHome(candidate: string | undefined): boolean {
-  const desktopUserDataDir = process.env.PAPERCLIP_DESKTOP_USER_DATA_DIR?.trim();
-  const trimmed = candidate?.trim();
-  if (!desktopUserDataDir || !trimmed) return false;
-  return isPathInsideDir(trimmed, path.resolve(desktopUserDataDir));
-}
-
-function resolvePaperclipHomeDir(): string {
-  const envHome = process.env.PAPERCLIP_HOME?.trim();
-  if (envHome) {
-    const resolved = path.resolve(expandHomePrefix(envHome));
-    if (
-      isFreshDesktopTempHome(resolved)
-      || !(DESKTOP_TEMP_INSTANCE_PATH_RE.test(resolved) && !existsSync(resolved))
-    ) {
-      return resolved;
-    }
-  }
-  return path.resolve(os.homedir(), ".paperclip");
-}
-
-function resolvePaperclipInstanceId(): string {
-  const raw = process.env.PAPERCLIP_INSTANCE_ID?.trim() || DEFAULT_INSTANCE_ID;
-  if (!INSTANCE_ID_RE.test(raw)) {
-    throw new Error(`Invalid PAPERCLIP_INSTANCE_ID '${raw}'.`);
-  }
-  return raw;
-}
-
-function resolveDefaultConfigPath(): string {
-  return path.resolve(
-    resolvePaperclipHomeDir(),
-    "instances",
-    resolvePaperclipInstanceId(),
-    CONFIG_BASENAME,
-  );
-}
-
-function resolveDefaultEmbeddedPostgresDir(): string {
-  return path.resolve(resolvePaperclipHomeDir(), "instances", resolvePaperclipInstanceId(), "db");
-}
-
-function resolveHomeAwarePath(value: string): string {
-  return path.resolve(expandHomePrefix(value));
-}
 
 function containsBrokenDesktopTempPath(value: unknown): boolean {
   if (typeof value === "string") {
@@ -126,11 +70,11 @@ function resolvePaperclipConfigPath(): string {
   if (process.env.PAPERCLIP_CONFIG?.trim()) {
     return path.resolve(process.env.PAPERCLIP_CONFIG.trim());
   }
-  return findConfigFileFromAncestors(process.cwd()) ?? resolveDefaultConfigPath();
+  return findConfigFileFromAncestors(process.cwd()) ?? resolvePaperclipConfigPathForInstance();
 }
 
 function resolvePaperclipEnvPath(configPath: string): string {
-  return path.resolve(path.dirname(configPath), ENV_BASENAME);
+  return resolvePaperclipEnvPathForConfig(configPath);
 }
 
 function parseEnvFile(contents: string): Record<string, string> {
