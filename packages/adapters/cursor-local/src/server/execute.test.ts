@@ -36,7 +36,7 @@ function rewriteWindowsPathsForGitShell(script: string) {
 function prepareTestCommandForRunChildProcess(command: string, args: string[]) {
   if (command === "bash" || command === "sh") {
     const nextArgs = [...args];
-    if (nextArgs[0] === "-lc" && typeof nextArgs[1] === "string") {
+    if ((nextArgs[0] === "-lc" || nextArgs[0] === "-c") && typeof nextArgs[1] === "string") {
       nextArgs[1] = rewriteWindowsPathsForGitShell(nextArgs[1]);
     }
     return {
@@ -176,7 +176,7 @@ function createFreshLeaseSandboxRunner(options: {
       };
 
       return await runChildProcess(`cursor-fresh-lease-${counter}`, preparedCommand.command, args, {
-        cwd: input.cwd ?? process.cwd(),
+        cwd: fromGitShellPath(input.cwd ?? process.cwd()),
         env,
         stdin: input.stdin,
         timeoutSec: Math.max(1, Math.ceil((input.timeoutMs ?? 30_000) / 1000)),
@@ -201,11 +201,11 @@ describe("cursor execute", () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-fresh-lease-"));
     const homeDir = path.join(root, "home");
     const workspace = path.join(root, "workspace");
-    const remoteWorkspace = path.join(root, "remote-workspace");
+    const remoteWorkspace = toGitShellPath(path.join(root, "remote-workspace"));
     const captureDir = path.join(root, "capture");
     const agentPath = path.join(homeDir, ".local", "bin", "agent");
     await fs.mkdir(workspace, { recursive: true });
-    await fs.mkdir(remoteWorkspace, { recursive: true });
+    await fs.mkdir(fromGitShellPath(remoteWorkspace), { recursive: true });
 
     const runner = createFreshLeaseSandboxRunner({
       homeDir,

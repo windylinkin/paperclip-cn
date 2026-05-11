@@ -7,10 +7,25 @@ vi.mock("@/lib/router", () => ({
   Link: ({ children, to, ...props }: ComponentProps<"a"> & { to: string }) => <a href={to} {...props}>{children}</a>,
 }));
 
-vi.mock("../i18n", () => ({
-  translateInstant: (key: string, options?: Record<string, unknown>) =>
-    typeof options?.defaultValue === "string" ? options.defaultValue : key,
-}));
+vi.mock("react-i18next", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-i18next")>();
+  const translations: Record<string, string> = {
+    "issueRelatedWork.references": "引用",
+    "issueRelatedWork.referencedBy": "被引用",
+    "issueRelatedWork.source.comment": "评论",
+    "issueRelatedWork.source.description": "描述",
+    "issueRelatedWork.source.document": "文档",
+    "issueRelatedWork.source.title": "标题",
+  };
+  return {
+    ...actual,
+    initReactI18next: { type: "3rdParty", init: () => {} },
+    useTranslation: () => ({
+      t: (key: string, options?: Record<string, unknown>) =>
+        translations[key] ?? (typeof options?.defaultValue === "string" ? options.defaultValue : key),
+    }),
+  };
+});
 
 describe("IssueRelatedWorkPanel", () => {
   it("renders outbound and inbound related work with source labels", () => {
@@ -56,14 +71,16 @@ describe("IssueRelatedWorkPanel", () => {
       />,
     );
 
-    expect(html).toContain("References");
-    expect(html).toContain("Referenced by");
+    expect(html).toContain("引用");
+    expect(html).toContain("被引用");
     expect(html).toContain("PAP-22");
     expect(html).toContain("PAP-33");
     expect(html).toContain('aria-label="Issue PAP-22: Downstream task"');
     expect(html).toContain('aria-label="Issue PAP-33: Upstream task"');
+    expect(html).toContain("标题");
     expect(html).toContain("plan");
-    expect(html).toContain("comment");
+    expect(html).toContain("评论");
+    expect(html).not.toContain(">comment<");
   });
 
   it("collapses duplicate source labels into a single chip with a count", () => {
@@ -94,7 +111,7 @@ describe("IssueRelatedWorkPanel", () => {
       />,
     );
 
-    const commentMatches = html.match(/>comment</g) ?? [];
+    const commentMatches = html.match(/>评论</g) ?? [];
     expect(commentMatches).toHaveLength(1);
     expect(html).toContain("×3");
   });

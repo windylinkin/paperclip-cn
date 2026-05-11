@@ -127,7 +127,7 @@ async function prepareCodexHelloProbe(input: {
 
   if (input.probeApiKey) {
     const probeHome = input.targetIsRemote
-      ? `/tmp/paperclip-codex-probe-${input.runId}`
+      ? path.posix.join(input.cwd, ".paperclip-runtime", "codex", `probe-home-${input.runId}`)
       : path.join(os.tmpdir(), `paperclip-codex-probe-${input.runId}`);
     if (!input.targetIsRemote) {
       await fs.mkdir(probeHome, { recursive: true });
@@ -183,6 +183,7 @@ export async function testEnvironment(
   const command = asString(config.command, "codex");
   const target = ctx.executionTarget ?? null;
   const targetIsRemote = target?.kind === "remote";
+  const targetIsSandbox = target?.kind === "remote" && target.transport === "sandbox";
   const cwd = resolveAdapterExecutionTargetCwd(target, asString(config.cwd, ""), process.cwd());
   const targetLabel = targetIsRemote
     ? ctx.environmentName ?? describeAdapterExecutionTarget(target)
@@ -292,7 +293,10 @@ export async function testEnvironment(
         hint: "Use the `codex` CLI command to run the automatic login and installation probe.",
       });
     } else {
-      const execArgs = buildCodexExecArgs({ ...config, fastMode: false });
+      const execArgs = buildCodexExecArgs(
+        { ...config, fastMode: false },
+        { skipGitRepoCheck: targetIsSandbox },
+      );
       const args = execArgs.args;
       if (execArgs.fastModeIgnoredReason) {
         checks.push({
@@ -300,6 +304,14 @@ export async function testEnvironment(
           level: "warn",
           message: execArgs.fastModeIgnoredReason,
           hint: "Switch the agent model to GPT-5.4 or enter a manual model ID to enable Codex Fast mode.",
+        });
+      }
+      if (targetIsSandbox) {
+        checks.push({
+          code: "codex_git_repo_check_skipped",
+          level: "info",
+          message: "Added --skip-git-repo-check for sandbox hello probes.",
+          hint: "Codex requires an explicit trust bypass in headless remote sandbox workspaces.",
         });
       }
 

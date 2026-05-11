@@ -42,7 +42,7 @@
 下列内容属于用户可见层，可以本地化或品牌化：
 
 - 页面标题
-- 按钮、菜单、对话框、空状态、toast
+- 按钮、菜单、popover、对话框、tabs 子页、空状态、toast、tooltip、aria label
 - README/导入导出生成文案
 - 站内帮助和品牌说明
 - 服务端直接返回给用户展示的错误信息
@@ -369,10 +369,12 @@ pnpm build
 - 空状态
 - 按钮
 - toast
-- 对话框
+- 对话框、popover、下拉菜单、账号菜单
 - 页面标题
 - 表格列头
-- tabs 和筛选器
+- tabs、tabs 下子页和筛选器
+- loading / empty / error 状态
+- tooltip、aria label 和图标按钮可见辅助文案
 
 语言相关改动额外必须看：
 

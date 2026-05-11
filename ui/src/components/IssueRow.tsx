@@ -74,8 +74,11 @@ export function IssueRow({
         "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-300",
         selected ? "border-muted-foreground text-muted-foreground" : null,
       )}
-      title={`Productivity review: ${productivityReviewTriggerLabel(productivityReview.trigger)}`}
-      aria-label="Productivity review open"
+      title={t("productivityReview.rowTitle", {
+        defaultValue: "Productivity review: {{label}}",
+        label: productivityReviewTriggerLabel(productivityReview.trigger, t),
+      })}
+      aria-label={t("productivityReview.openTitle", { defaultValue: "Productivity review open" })}
     >
       <Eye className="h-2.5 w-2.5" aria-hidden />
     </span>
@@ -89,9 +92,9 @@ export function IssueRow({
   const planningModeIndicator = issue.workMode === "planning" ? (
     <span
       className="ml-1.5 inline-flex shrink-0 items-center rounded-full border border-amber-500/60 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300"
-      title="This issue is in planning mode."
+      title={t("issueWorkMode.planningTitle", { defaultValue: "This issue is in planning mode." })}
     >
-      Planning
+      {t("newIssue.workMode.planning", { defaultValue: "Planning" })}
     </span>
   ) : null;
   const parkedBlockerIndicator = hasAssignedBacklogBlocker(issue.blockedBy) ? (

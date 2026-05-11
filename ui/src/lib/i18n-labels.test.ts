@@ -1,0 +1,20 @@
+import { describe, expect, it } from "vitest";
+import type { TFunction } from "i18next";
+import { translateStatusLabel } from "./i18n-labels";
+
+function testTranslator(translations: Record<string, string>): TFunction {
+  return ((key: string, options?: { defaultValue?: string }) =>
+    translations[key] ?? options?.defaultValue ?? key) as TFunction;
+}
+
+describe("translateStatusLabel", () => {
+  it("localizes goal statuses through shared status keys", () => {
+    const t = testTranslator({
+      "status.planned": "已规划",
+      "status.achieved": "已达成",
+    });
+
+    expect(translateStatusLabel(t, "planned")).toBe("已规划");
+    expect(translateStatusLabel(t, "achieved")).toBe("已达成");
+  });
+});

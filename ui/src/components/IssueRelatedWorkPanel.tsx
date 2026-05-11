@@ -1,6 +1,7 @@
 import type { IssueRelatedWorkItem, IssueRelatedWorkSummary } from "@penclipai/shared";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { IssueReferencePill } from "./IssueReferencePill";
-import { translateInstant } from "../i18n";
 
 type GroupedSource = {
   label: string;
@@ -8,15 +9,33 @@ type GroupedSource = {
   sampleMatchedText: string | null;
 };
 
-function groupSourcesByLabel(sources: IssueRelatedWorkItem["sources"]): GroupedSource[] {
+function sourceDisplayLabel(source: IssueRelatedWorkItem["sources"][number], t: TFunction): string {
+  switch (source.kind) {
+    case "title":
+      return t("issueRelatedWork.source.title", { defaultValue: "title" });
+    case "description":
+      return t("issueRelatedWork.source.description", { defaultValue: "description" });
+    case "comment":
+      return t("issueRelatedWork.source.comment", { defaultValue: "comment" });
+    case "document":
+      return source.label === "document"
+        ? t("issueRelatedWork.source.document", { defaultValue: "document" })
+        : source.label;
+    default:
+      return source.label;
+  }
+}
+
+function groupSourcesByLabel(sources: IssueRelatedWorkItem["sources"], t: TFunction): GroupedSource[] {
   const groups = new Map<string, GroupedSource>();
   for (const source of sources) {
-    const existing = groups.get(source.label);
+    const key = `${source.kind}:${source.label}`;
+    const existing = groups.get(key);
     if (existing) {
       existing.count += 1;
     } else {
-      groups.set(source.label, {
-        label: source.label,
+      groups.set(key, {
+        label: sourceDisplayLabel(source, t),
         count: 1,
         sampleMatchedText: source.matchedText ?? null,
       });
@@ -36,6 +55,8 @@ function Section({
   items: IssueRelatedWorkItem[];
   emptyLabel: string;
 }) {
+  const { t } = useTranslation(undefined, { useSuspense: false });
+
   return (
     <section className="space-y-3 rounded-lg border border-border p-3">
       <div className="space-y-1">
@@ -48,7 +69,7 @@ function Section({
       ) : (
         <ul className="-mx-1 flex flex-col">
           {items.map((item) => {
-            const groupedSources = groupSourcesByLabel(item.sources);
+            const groupedSources = groupSourcesByLabel(item.sources, t);
             const showTitle = item.issue.identifier !== item.issue.title;
             return (
               <li
@@ -89,28 +110,29 @@ export function IssueRelatedWorkPanel({
 }: {
   relatedWork?: IssueRelatedWorkSummary | null;
 }) {
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const outbound = relatedWork?.outbound ?? [];
   const inbound = relatedWork?.inbound ?? [];
 
   return (
     <div className="space-y-3">
       <Section
-        title={translateInstant("issueRelatedWork.references", { defaultValue: "References" })}
-        description={translateInstant("issueRelatedWork.referencesDescription", {
+        title={t("issueRelatedWork.references", { defaultValue: "References" })}
+        description={t("issueRelatedWork.referencesDescription", {
           defaultValue: "Other tasks this issue currently points at in its title, description, comments, or documents.",
         })}
         items={outbound}
-        emptyLabel={translateInstant("issueRelatedWork.noReferences", {
+        emptyLabel={t("issueRelatedWork.noReferences", {
           defaultValue: "This issue does not reference any other tasks yet.",
         })}
       />
       <Section
-        title={translateInstant("issueRelatedWork.referencedBy", { defaultValue: "Referenced by" })}
-        description={translateInstant("issueRelatedWork.referencedByDescription", {
+        title={t("issueRelatedWork.referencedBy", { defaultValue: "Referenced by" })}
+        description={t("issueRelatedWork.referencedByDescription", {
           defaultValue: "Other tasks that currently point at this issue.",
         })}
         items={inbound}
-        emptyLabel={translateInstant("issueRelatedWork.noReferencedBy", {
+        emptyLabel={t("issueRelatedWork.noReferencedBy", {
           defaultValue: "No other tasks reference this issue yet.",
         })}
       />
