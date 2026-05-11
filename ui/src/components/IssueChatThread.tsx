@@ -477,15 +477,21 @@ function IssueChatFallbackThread({
   emptyMessage: string;
   variant: "full" | "embedded";
 }) {
+  const { t } = useTranslation(undefined, { useSuspense: false });
+
   return (
     <div className={cn(variant === "embedded" ? "space-y-3" : "space-y-4")}>
       <div className="rounded-xl border border-amber-300/60 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/20 dark:text-amber-200">
         <div className="flex items-start gap-2">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="space-y-1">
-            <p className="font-medium">Chat renderer hit an internal state error.</p>
+            <p className="font-medium">
+              {t("issueChat.fallbackErrorTitle", { defaultValue: "Chat renderer hit an internal state error." })}
+            </p>
             <p className="text-xs opacity-80">
-              Showing a safe fallback transcript instead of crashing the issues page.
+              {t("issueChat.fallbackErrorBody", {
+                defaultValue: "Showing a safe fallback transcript instead of crashing the issues page.",
+              })}
             </p>
           </div>
         </div>
@@ -518,7 +524,9 @@ function IssueChatFallbackThread({
                   {lines.length > 0 ? lines.map((line, index) => (
                     <MarkdownBody key={`${message.id}:fallback:${index}`}>{line}</MarkdownBody>
                   )) : (
-                    <p className="text-sm text-muted-foreground">No message content.</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t("No message content.", { defaultValue: "No message content." })}
+                    </p>
                   )}
                 </div>
               </div>

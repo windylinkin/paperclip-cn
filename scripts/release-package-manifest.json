@@ -96,7 +96,7 @@
   },
   {
     "dir": "packages/plugins/sandbox-providers/daytona",
-    "name": "@paperclipai/plugin-daytona",
+    "name": "@penclipai/plugin-daytona",
     "publishFromCi": true
   },
   {

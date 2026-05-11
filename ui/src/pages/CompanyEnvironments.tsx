@@ -779,7 +779,7 @@ export function CompanyEnvironments() {
                 <div className="md:col-span-2 space-y-3">
                   {selectedSandboxProvider?.description ? (
                     <div className="text-xs text-muted-foreground">
-                      {selectedSandboxProvider.description}
+                      {t(selectedSandboxProvider.description, { defaultValue: selectedSandboxProvider.description })}
                     </div>
                   ) : null}
                   {selectedSandboxSchema ? (

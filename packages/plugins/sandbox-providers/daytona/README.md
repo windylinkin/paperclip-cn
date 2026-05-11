@@ -1,4 +1,4 @@
-# `@paperclipai/plugin-daytona`
+# `@penclipai/plugin-daytona`
 
 Published Daytona sandbox provider plugin for Paperclip.
 
@@ -9,7 +9,7 @@ This package lives in the Paperclip monorepo, but it is intentionally excluded f
 From a Paperclip instance, install:
 
 ```text
-@paperclipai/plugin-daytona
+@penclipai/plugin-daytona
 ```
 
 The host plugin installer runs `npm install` into the managed plugin directory, so transitive dependencies such as `@daytonaio/sdk` are pulled in during installation.
