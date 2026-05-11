@@ -11,6 +11,7 @@ import type { Agent, IssueComment } from "@penclipai/shared";
 import type { ActiveRunForIssue, LiveRunForIssue } from "../api/heartbeats";
 import { translateInstant } from "../i18n";
 import { formatAssigneeUserLabel } from "./assignees";
+import { translateStatusLabel } from "./i18n-labels";
 import {
   buildIssueThreadInteractionSummary,
   type IssueThreadInteraction,
@@ -376,6 +377,11 @@ function formatStatusLabel(status: string) {
   }
 }
 
+function formatTimelineStatusValue(status: string | null) {
+  if (!status) return translateInstant("None", { defaultValue: "None" });
+  return translateStatusLabel(translateInstant as unknown as Parameters<typeof translateStatusLabel>[0], status);
+}
+
 function createCommentMessage(args: {
   comment: IssueChatComment;
   agentMap?: Map<string, Agent>;
@@ -464,7 +470,7 @@ function createTimelineEventMessage(args: {
   ];
   if (event.statusChange) {
     lines.push(
-      `${translateInstant("Status")}: ${event.statusChange.from ?? translateInstant("common.none")} -> ${event.statusChange.to ?? translateInstant("common.none")}`,
+      `${translateInstant("Status")}: ${formatTimelineStatusValue(event.statusChange.from)} -> ${formatTimelineStatusValue(event.statusChange.to)}`,
     );
   }
   if (event.assigneeChange) {

@@ -16,12 +16,47 @@ const { i18nLanguageRef, i18nTranslations } = vi.hoisted(() => ({
       "systemNotice.alert": "系统警报",
       "systemNotice.notice": "系统通知",
       "systemNotice.warning": "系统警告",
+      "systemNotice.metadata.statusBefore": "之前状态",
+      "systemNotice.metadata.cause": "原因",
+      "systemNotice.metadata.completedRun": "已完成运行",
+      "systemNotice.metadata.runContext": "运行上下文",
+      "systemNotice.metadata.reason": "原因",
+      "systemNotice.metadata.causeCode": "原因代码",
       "systemNotice.successfulRunHandoff.missingDispositionTitle": "缺少任务处置状态",
       "systemNotice.successfulRunHandoff.missingDispositionBody": "需要先为这个任务记录处置状态，才能继续推进。",
+      "systemNotice.successfulRunHandoff.recoveryBlockedTitle": "缺少处置状态的恢复已阻塞",
+      "systemNotice.successfulRunHandoff.recoveryBlockedBody": "系统无法自动补齐这个任务缺失的处置状态。该任务已阻塞，等待恢复负责人处理。",
       "systemNotice.successfulRunHandoff.requiredAction": "需要处理",
       "systemNotice.successfulRunHandoff.runEvidence": "运行依据",
+      "systemNotice.successfulRunHandoff.recoveryOwner": "恢复负责人",
       "systemNotice.successfulRunHandoff.sourceIssue": "来源任务",
+      "systemNotice.successfulRunHandoff.assignee": "负责人",
+      "systemNotice.successfulRunHandoff.missingDisposition": "缺失处置状态",
+      "systemNotice.successfulRunHandoff.validDispositions": "有效处置状态",
       "systemNotice.successfulRunHandoff.successfulRun": "成功运行",
+      "systemNotice.successfulRunHandoff.runStatus": "运行状态",
+      "systemNotice.successfulRunHandoff.normalizedCause": "归一化原因",
+      "systemNotice.successfulRunHandoff.detectedProgress": "检测到的进展",
+      "systemNotice.successfulRunHandoff.automaticRetry": "自动重试",
+      "systemNotice.successfulRunHandoff.recoveryIssue": "恢复任务",
+      "systemNotice.successfulRunHandoff.sourceAssignee": "来源负责人",
+      "systemNotice.successfulRunHandoff.suggestedAction": "建议操作",
+      "systemNotice.successfulRunHandoff.sourceRun": "来源运行",
+      "systemNotice.successfulRunHandoff.correctiveHandoffRun": "修正交接运行",
+      "systemNotice.successfulRunHandoff.latestIssueStatus": "最新任务状态",
+      "systemNotice.successfulRunHandoff.latestHandoffRunStatus": "最新交接运行状态",
+      "systemNotice.successfulRunHandoff.value.clearNextStep": "补充下一步处置",
+      "systemNotice.successfulRunHandoff.value.validDispositions": "已完成、已取消、带负责人的审核中、带阻塞项的已阻塞、委派后续任务，或明确继续执行",
+      "systemNotice.successfulRunHandoff.value.successfulRunMissingState": "成功运行缺少任务处置状态",
+      "systemNotice.successfulRunHandoff.value.usefulOutputNoActionEvidence": "运行产出了有用内容，但没有记录具体行动依据",
+      "systemNotice.successfulRunHandoff.value.correctiveHandoffQueued": "已排队一次修正性交接唤醒",
+      "systemNotice.successfulRunHandoff.value.chooseValidDisposition": "选择并记录有效的任务处置状态，不要复制运行记录内容",
+      "Status": "状态",
+      "unknown": "未知",
+      "status.done": "已完成",
+      "status.failed": "失败",
+      "status.inProgress": "进行中",
+      "status.succeeded": "成功",
     },
   } as Record<string, Record<string, string>>,
 }));
@@ -212,12 +247,26 @@ describe("IssueChatThread system notice routing", () => {
             title: "Required action",
             rows: [
               { type: "issue_link", label: "Source issue", issueId: "i1", identifier: "PAP-3440", title: "Recovery" },
+              { type: "key_value", label: "Missing disposition", value: "clear_next_step" },
+              {
+                type: "key_value",
+                label: "Valid dispositions",
+                value: "done, cancelled, in_review with an owner, blocked with blockers, delegated follow-up, or explicit continuation",
+              },
             ],
           },
           {
             title: "Run evidence",
             rows: [
               { type: "run_link", label: "Successful run", runId: "run-1", title: "succeeded" },
+              { type: "key_value", label: "Run status", value: "succeeded" },
+              { type: "key_value", label: "Normalized cause", value: "successful_run_missing_state" },
+              {
+                type: "key_value",
+                label: "Detected progress",
+                value: "Run produced useful output but no concrete action evidence",
+              },
+              { type: "key_value", label: "Automatic retry", value: "one corrective handoff wake queued" },
             ],
           },
         ],
@@ -234,8 +283,163 @@ describe("IssueChatThread system notice routing", () => {
     expect(container.textContent).toContain("来源任务");
     expect(container.textContent).toContain("运行依据");
     expect(container.textContent).toContain("成功运行");
+    expect(container.textContent).toContain("缺失处置状态");
+    expect(container.textContent).toContain("补充下一步处置");
+    expect(container.textContent).toContain("有效处置状态");
+    expect(container.textContent).toContain("已完成、已取消、带负责人的审核中");
+    expect(container.textContent).toContain("运行状态");
+    expect(container.textContent).toContain("归一化原因");
+    expect(container.textContent).toContain("成功运行缺少任务处置状态");
+    expect(container.textContent).toContain("检测到的进展");
+    expect(container.textContent).toContain("运行产出了有用内容，但没有记录具体行动依据");
+    expect(container.textContent).toContain("自动重试");
+    expect(container.textContent).toContain("已排队一次修正性交接唤醒");
     expect(container.textContent).not.toContain("Missing issue disposition");
     expect(container.textContent).not.toContain("Paperclip needs a disposition");
+    expect(container.textContent).not.toContain("clear_next_step");
+    expect(container.textContent).not.toContain("successful_run_missing_state");
+    expect(container.textContent).not.toContain("one corrective handoff wake queued");
+    expect(container.textContent).not.toContain("in_review with an owner");
+  });
+
+  it("localizes recovery-blocked system notice metadata values in Chinese", () => {
+    i18nLanguageRef.current = "zh-CN";
+    const comment: IssueChatComment = {
+      id: "comment-recovery-blocked-zh",
+      companyId: "company-1",
+      issueId: "issue-1",
+      authorType: "system",
+      authorAgentId: null,
+      authorUserId: null,
+      body: "Paperclip could not resolve this issue's missing disposition automatically. The issue is blocked on a recovery owner.",
+      presentation: {
+        kind: "system_notice",
+        tone: "danger",
+        title: "Missing disposition recovery blocked",
+        detailsDefaultOpen: true,
+      },
+      metadata: {
+        version: 1,
+        sections: [
+          {
+            title: "Recovery owner",
+            rows: [
+              {
+                type: "issue_link",
+                label: "Source issue",
+                issueId: "issue-3",
+                identifier: "BIG-3",
+                title: "Review productivity for BIG-2",
+              },
+              {
+                type: "issue_link",
+                label: "Recovery issue",
+                issueId: "issue-5",
+                identifier: "BIG-5",
+                title: "Recover missing next step",
+              },
+              { type: "agent_link", label: "Recovery owner", agentId: "agent-ceo", name: "CEO" },
+              { type: "agent_link", label: "Source assignee", agentId: "agent-ceo", name: "CEO" },
+              {
+                type: "key_value",
+                label: "Suggested action",
+                value: "choose and record a valid issue disposition without copying transcript content",
+              },
+            ],
+          },
+          {
+            title: "Run evidence",
+            rows: [
+              { type: "run_link", label: "Source run", runId: "run-source", title: "succeeded" },
+              { type: "run_link", label: "Corrective handoff run", runId: "run-corrective", title: "in_progress" },
+              { type: "key_value", label: "Latest issue status", value: "in_progress" },
+              { type: "key_value", label: "Latest handoff run status", value: "succeeded" },
+              { type: "key_value", label: "Normalized cause", value: "successful_run_missing_state" },
+              { type: "key_value", label: "Missing disposition", value: "clear_next_step" },
+            ],
+          },
+        ],
+      },
+      ...baseTimestamps,
+    };
+
+    renderThread([comment]);
+
+    expect(container.textContent).toContain("缺少处置状态的恢复已阻塞");
+    expect(container.textContent).toContain("恢复负责人");
+    expect(container.textContent).toContain("恢复任务");
+    expect(container.textContent).toContain("建议操作");
+    expect(container.textContent).toContain("选择并记录有效的任务处置状态，不要复制运行记录内容");
+    expect(container.textContent).toContain("来源运行");
+    expect(container.textContent).toContain("修正交接运行");
+    expect(container.textContent).toContain("最新任务状态");
+    expect(container.textContent).toContain("最新交接运行状态");
+    expect(container.textContent).toContain("进行中");
+    expect(container.textContent).toContain("成功");
+    expect(container.textContent).toContain("成功运行缺少任务处置状态");
+    expect(container.textContent).toContain("补充下一步处置");
+    expect(container.textContent).toContain("Review productivity for BIG-2");
+    expect(container.textContent).toContain("CEO");
+    expect(container.textContent).not.toContain("choose and record a valid issue disposition");
+    expect(container.textContent).not.toContain("successful_run_missing_state");
+    expect(container.textContent).not.toContain("clear_next_step");
+    expect(container.textContent).not.toContain("in_progress");
+    expect(container.textContent).not.toContain("succeeded");
+  });
+
+  it("localizes generic system notice metadata labels and enum values in Chinese", () => {
+    i18nLanguageRef.current = "zh-CN";
+    const comment: IssueChatComment = {
+      id: "comment-generic-metadata-zh",
+      companyId: "company-1",
+      issueId: "issue-1",
+      authorType: "system",
+      authorAgentId: null,
+      authorUserId: null,
+      body: "System recovery completed.",
+      presentation: {
+        kind: "system_notice",
+        tone: "info",
+        title: null,
+        detailsDefaultOpen: true,
+      },
+      metadata: {
+        version: 1,
+        sections: [
+          {
+            title: "Run context",
+            rows: [
+              { type: "key_value", label: "Status before", value: "in_progress" },
+              { type: "key_value", label: "Status", value: "done" },
+              { type: "key_value", label: "Cause", value: "successful_run_missing_state" },
+              { type: "key_value", label: "Reason", value: "unknown" },
+              { type: "run_link", label: "Completed run", runId: "run-generic", title: "failed" },
+              { type: "code", label: "Cause code", code: "missing_disposition" },
+            ],
+          },
+        ],
+      },
+      ...baseTimestamps,
+    };
+
+    renderThread([comment]);
+
+    expect(container.textContent).toContain("运行上下文");
+    expect(container.textContent).toContain("之前状态");
+    expect(container.textContent).toContain("进行中");
+    expect(container.textContent).toContain("状态");
+    expect(container.textContent).toContain("已完成");
+    expect(container.textContent).toContain("原因");
+    expect(container.textContent).toContain("成功运行缺少任务处置状态");
+    expect(container.textContent).toContain("未知");
+    expect(container.textContent).toContain("已完成运行");
+    expect(container.textContent).toContain("失败");
+    expect(container.textContent).toContain("原因代码");
+    expect(container.textContent).toContain("missing_disposition");
+    expect(container.textContent).not.toContain("Status before");
+    expect(container.textContent).not.toContain("in_progress");
+    expect(container.textContent).not.toContain("successful_run_missing_state");
+    expect(container.textContent).not.toContain("unknown");
   });
 
   it("expands metadata when detailsDefaultOpen is true", () => {

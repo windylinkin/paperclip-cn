@@ -70,6 +70,7 @@ import {
   type IssueTimelineEvent,
   type IssueTimelineWorkspace,
 } from "../lib/issue-timeline-events";
+import { translateStatusLabel } from "../lib/i18n-labels";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -416,21 +417,26 @@ class IssueChatErrorBoundary extends Component<IssueChatErrorBoundaryProps, Issu
 }
 
 function IssueAssigneePausedNotice({ agent }: { agent: Agent | null }) {
+  const { t } = useTranslation(undefined, { useSuspense: false });
   if (!agent || agent.status !== "paused") return null;
 
   const pauseDetail =
     agent.pauseReason === "budget"
-      ? "It was paused by a budget hard stop."
+      ? t("issueChat.agentPaused.budgetDetail", { defaultValue: "It was paused by a budget hard stop." })
       : agent.pauseReason === "system"
-        ? "It was paused by the system."
-        : "It was paused manually.";
+        ? t("issueChat.agentPaused.systemDetail", { defaultValue: "It was paused by the system." })
+        : t("issueChat.agentPaused.manualDetail", { defaultValue: "It was paused manually." });
 
   return (
     <div className="mb-3 rounded-md border border-orange-300/70 bg-orange-50/90 px-3 py-2.5 text-sm text-orange-950 shadow-sm dark:border-orange-500/40 dark:bg-orange-500/10 dark:text-orange-100">
       <div className="flex items-start gap-2">
         <PauseCircle className="mt-0.5 h-4 w-4 shrink-0 text-orange-600 dark:text-orange-300" />
         <p className="min-w-0 leading-5">
-          <span className="font-medium">{agent.name}</span> is paused. New runs will not start until the agent is resumed. {pauseDetail}
+          <span className="font-medium">{agent.name}</span>{" "}
+          {t("issueChat.agentPaused.bodyAfterName", {
+            defaultValue: "is paused. New runs will not start until the agent is resumed.",
+          })}{" "}
+          {pauseDetail}
         </p>
       </div>
     </div>
@@ -681,9 +687,9 @@ export function SuccessfulRunHandoffCommentCallout({
   );
 }
 
-function humanizeValue(value: string | null) {
-  if (!value) return "None";
-  return value.replace(/_/g, " ");
+function formatTimelineStatusValue(value: string | null, t: TFunction) {
+  if (!value) return t("None", { defaultValue: "None" });
+  return translateStatusLabel(t, value);
 }
 
 function formatTimelineAssigneeLabel(
@@ -2168,13 +2174,146 @@ const KNOWN_SYSTEM_NOTICE_TEXT_KEYS: Record<string, { key: string; defaultValue:
     key: "systemNotice.successfulRunHandoff.latestHandoffRunStatus",
     defaultValue: "Latest handoff run status",
   },
+  "Status before": {
+    key: "systemNotice.metadata.statusBefore",
+    defaultValue: "Status before",
+  },
+  "Status": {
+    key: "Status",
+    defaultValue: "Status",
+  },
+  "Cause": {
+    key: "systemNotice.metadata.cause",
+    defaultValue: "Cause",
+  },
+  "Completed run": {
+    key: "systemNotice.metadata.completedRun",
+    defaultValue: "Completed run",
+  },
+  "Recovery run": {
+    key: "systemNotice.metadata.recoveryRun",
+    defaultValue: "Recovery run",
+  },
+  "Run context": {
+    key: "systemNotice.metadata.runContext",
+    defaultValue: "Run context",
+  },
+  "Next step": {
+    key: "systemNotice.metadata.nextStep",
+    defaultValue: "Next step",
+  },
+  "Owner": {
+    key: "systemNotice.metadata.owner",
+    defaultValue: "Owner",
+  },
+  "Reason": {
+    key: "systemNotice.metadata.reason",
+    defaultValue: "Reason",
+  },
+  "Notes": {
+    key: "systemNotice.metadata.notes",
+    defaultValue: "Notes",
+  },
+  "Cause code": {
+    key: "systemNotice.metadata.causeCode",
+    defaultValue: "Cause code",
+  },
 };
+
+const KNOWN_SYSTEM_NOTICE_METADATA_VALUE_KEYS: Record<string, { key: string; defaultValue: string }> = {
+  unknown: {
+    key: "unknown",
+    defaultValue: "unknown",
+  },
+  clear_next_step: {
+    key: "systemNotice.successfulRunHandoff.value.clearNextStep",
+    defaultValue: "Clear next step",
+  },
+  "done, cancelled, in_review with an owner, blocked with blockers, delegated follow-up, or explicit continuation": {
+    key: "systemNotice.successfulRunHandoff.value.validDispositions",
+    defaultValue: "Done, cancelled, in review with an owner, blocked with blockers, delegated follow-up, or explicit continuation",
+  },
+  successful_run_missing_state: {
+    key: "systemNotice.successfulRunHandoff.value.successfulRunMissingState",
+    defaultValue: "Successful run missing issue state",
+  },
+  "Run produced useful output but no concrete action evidence": {
+    key: "systemNotice.successfulRunHandoff.value.usefulOutputNoActionEvidence",
+    defaultValue: "Run produced useful output but no concrete action evidence",
+  },
+  "one corrective handoff wake queued": {
+    key: "systemNotice.successfulRunHandoff.value.correctiveHandoffQueued",
+    defaultValue: "One corrective handoff wake queued",
+  },
+  "choose and record a valid issue disposition without copying transcript content": {
+    key: "systemNotice.successfulRunHandoff.value.chooseValidDisposition",
+    defaultValue: "Choose and record a valid issue disposition without copying transcript content",
+  },
+};
+
+const SYSTEM_NOTICE_STATUS_VALUE_LABELS = new Set([
+  "Status",
+  "Status before",
+  "Run status",
+  "Latest issue status",
+  "Latest handoff run status",
+]);
+
+const SYSTEM_NOTICE_STATUS_VALUES = new Set([
+  "active",
+  "approved",
+  "archived",
+  "backlog",
+  "blocked",
+  "cancelled",
+  "coming_soon",
+  "done",
+  "deleted",
+  "disabled",
+  "error",
+  "failed",
+  "queued",
+  "ready",
+  "idle",
+  "in_progress",
+  "in_review",
+  "paused",
+  "pending",
+  "pending_approval",
+  "rejected",
+  "revision_requested",
+  "running",
+  "skipped",
+  "starting",
+  "succeeded",
+  "timed_out",
+  "terminated",
+  "todo",
+  "warning",
+]);
 
 function translateKnownSystemNoticeText<T extends string | null | undefined>(text: T, t: TFunction): T | string {
   const trimmed = typeof text === "string" ? text.trim() : "";
   if (!trimmed) return text;
   const entry = KNOWN_SYSTEM_NOTICE_TEXT_KEYS[trimmed];
   return entry ? t(entry.key, { defaultValue: entry.defaultValue }) : text;
+}
+
+function translateKnownSystemNoticeMetadataValue(
+  value: string,
+  label: string | undefined,
+  t: TFunction,
+  options: { statusValue?: boolean } = {},
+) {
+  const trimmed = value.trim();
+  const entry = KNOWN_SYSTEM_NOTICE_METADATA_VALUE_KEYS[trimmed];
+  if (entry) return t(entry.key, { defaultValue: entry.defaultValue });
+  const shouldTranslateStatus = options.statusValue
+    || Boolean(label && SYSTEM_NOTICE_STATUS_VALUE_LABELS.has(label));
+  if (shouldTranslateStatus && SYSTEM_NOTICE_STATUS_VALUES.has(trimmed)) {
+    return translateStatusLabel(t, trimmed);
+  }
+  return value;
 }
 
 function translateSystemNoticeDefaultLabel(label: string | undefined, t: TFunction) {
@@ -2197,10 +2336,27 @@ function translateSystemNoticeMetadata(
   if (!sections) return undefined;
   return sections.map((section) => {
     const translated: SystemNoticeMetadataSection = {
-      rows: section.rows.map((row) => ({
-        ...row,
-        label: translateKnownSystemNoticeText(row.label, t) ?? row.label,
-      })),
+      rows: section.rows.map((row) => {
+        const translatedLabel = translateKnownSystemNoticeText(row.label, t) ?? row.label;
+        if (row.kind === "text") {
+          return {
+            ...row,
+            label: translatedLabel,
+            value: translateKnownSystemNoticeMetadataValue(row.value, row.label, t),
+          };
+        }
+        if (row.kind === "run" && row.status) {
+          return {
+            ...row,
+            label: translatedLabel,
+            status: translateKnownSystemNoticeMetadataValue(row.status, row.label, t, { statusValue: true }),
+          };
+        }
+        return {
+          ...row,
+          label: translatedLabel,
+        };
+      }),
     };
     if (section.title) {
       translated.title = translateKnownSystemNoticeText(section.title, t) ?? section.title;
@@ -2658,9 +2814,9 @@ function IssueChatSystemMessage({ message }: { message: ThreadMessage }) {
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {t("Status", { defaultValue: "Status" })}
             </span>
-            <span className="text-muted-foreground">{humanizeValue(statusChange.from)}</span>
+            <span className="text-muted-foreground">{formatTimelineStatusValue(statusChange.from, t)}</span>
             <ArrowRight className="h-3 w-3 text-muted-foreground" />
-            <span className="font-medium text-foreground">{humanizeValue(statusChange.to)}</span>
+            <span className="font-medium text-foreground">{formatTimelineStatusValue(statusChange.to, t)}</span>
           </div>
         ) : null}
 

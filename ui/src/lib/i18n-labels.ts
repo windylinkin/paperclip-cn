@@ -2,6 +2,7 @@ import type { TFunction } from "i18next";
 
 const STATUS_TRANSLATION_KEYS: Record<string, string> = {
   active: "status.active",
+  achieved: "status.achieved",
   approved: "status.approved",
   archived: "status.archived",
   backlog: "status.backlog",
@@ -21,6 +22,7 @@ const STATUS_TRANSLATION_KEYS: Record<string, string> = {
   paused: "status.paused",
   pending: "status.pending",
   pending_approval: "status.pendingApproval",
+  planned: "status.planned",
   rejected: "status.rejected",
   revision_requested: "status.revisionRequested",
   running: "status.running",

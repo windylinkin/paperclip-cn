@@ -66,13 +66,26 @@ vi.mock("@assistant-ui/react", () => ({
 
 vi.mock("react-i18next", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-i18next")>();
+  const translations: Record<string, string> = {
+    None: "无",
+    "issueChat.agentPaused.bodyAfterName": "已暂停。恢复该智能体前不会启动新的运行。",
+    "issueChat.agentPaused.budgetDetail": "该智能体因预算硬停止而暂停。",
+    "issueChat.agentPaused.manualDetail": "该智能体已手动暂停。",
+    "issueChat.agentPaused.systemDetail": "该智能体已由系统暂停。",
+    "status.blocked": "已阻塞",
+    "status.done": "已完成",
+    "status.inProgress": "进行中",
+    "status.todo": "待办",
+  };
   return {
     ...actual,
     useTranslation: () => ({
-      t: (key: string, options?: Record<string, unknown>) =>
-        typeof options?.defaultValue === "string"
+      t: (key: string, options?: Record<string, unknown>) => {
+        if (key in translations) return translations[key];
+        return typeof options?.defaultValue === "string"
           ? options.defaultValue.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""))
-          : key.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? "")),
+          : key.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
+      },
     }),
   };
 });
@@ -1293,6 +1306,53 @@ describe("IssueChatThread", () => {
     });
   });
 
+  it("localizes timeline status change values", () => {
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <MemoryRouter>
+          <IssueChatThread
+            comments={[]}
+            linkedRuns={[]}
+            timelineEvents={[{
+              id: "event-1",
+              actorType: "user",
+              actorId: "local-board",
+              createdAt: new Date("2026-03-11T10:00:00.000Z"),
+              statusChange: {
+                from: "in_progress",
+                to: "done",
+              },
+            }, {
+              id: "event-2",
+              actorType: "user",
+              actorId: "local-board",
+              createdAt: new Date("2026-03-11T10:01:00.000Z"),
+              statusChange: {
+                from: "done",
+                to: "todo",
+              },
+            }]}
+            liveRuns={[]}
+            onAdd={async () => {}}
+            showComposer={false}
+            enableLiveTranscriptPolling={false}
+          />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("进行中");
+    expect(container.textContent).toContain("已完成");
+    expect(container.textContent).toContain("待办");
+    expect(container.textContent).not.toContain("in progress");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
   it("shows unresolved blocker context above the composer", () => {
     const root = createRoot(container);
 
@@ -1414,9 +1474,9 @@ describe("IssueChatThread", () => {
       );
     });
 
-    expect(container.textContent).toContain("CodexCoder is paused");
-    expect(container.textContent).toContain("New runs will not start until the agent is resumed");
-    expect(container.textContent).toContain("It was paused manually");
+    expect(container.textContent).toContain("CodexCoder 已暂停");
+    expect(container.textContent).toContain("恢复该智能体前不会启动新的运行");
+    expect(container.textContent).toContain("该智能体已手动暂停");
 
     act(() => {
       root.unmount();

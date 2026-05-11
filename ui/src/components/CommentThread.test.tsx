@@ -42,8 +42,11 @@ vi.mock("react-i18next", async (importOriginal) => {
     Status: "状态",
     System: "系统",
     Unassigned: "未分配",
+    Workspace: "工作区",
     "updated this task": "更新了这个任务",
+    "status.blocked": "已阻塞",
     "status.done": "已完成",
+    "status.inProgress": "进行中",
     "status.todo": "待办",
   };
   return {
@@ -241,6 +244,50 @@ describe("CommentThread", () => {
 
     expect(container.textContent).toContain("Follow-up");
     expect(container.textContent).toContain("requested follow-up");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("localizes timeline status change values", () => {
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <MemoryRouter>
+          <CommentThread
+            comments={[]}
+            timelineEvents={[{
+              id: "event-1",
+              actorType: "user",
+              actorId: "local-board",
+              createdAt: new Date("2026-03-11T10:00:00.000Z"),
+              statusChange: {
+                from: "in_progress",
+                to: "done",
+              },
+            }, {
+              id: "event-2",
+              actorType: "user",
+              actorId: "local-board",
+              createdAt: new Date("2026-03-11T10:01:00.000Z"),
+              statusChange: {
+                from: "done",
+                to: "todo",
+              },
+            }]}
+            onAdd={async () => {}}
+          />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("状态");
+    expect(container.textContent).toContain("进行中");
+    expect(container.textContent).toContain("已完成");
+    expect(container.textContent).toContain("待办");
+    expect(container.textContent).not.toContain("in progress");
 
     act(() => {
       root.unmount();

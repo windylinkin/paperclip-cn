@@ -10,6 +10,8 @@ import { queryKeys } from "../lib/queryKeys";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +26,7 @@ import {
   Layers,
 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { translateStatusLabel } from "../lib/i18n-labels";
 import { MarkdownEditor, type MarkdownEditorRef } from "./MarkdownEditor";
 import { StatusBadge } from "./StatusBadge";
 
@@ -32,13 +35,6 @@ const levelLabels: Record<string, string> = {
   team: "goalLevel.team",
   agent: "goalLevel.agent",
   task: "goalLevel.task",
-};
-
-const goalStatusLabels: Record<string, string> = {
-  active: "Active",
-  achieved: "Done",
-  cancelled: "Cancelled",
-  planned: "status.planned",
 };
 
 export function NewGoalDialog() {
@@ -128,6 +124,15 @@ export function NewGoalDialog() {
         className={cn("p-0 gap-0", expanded ? "sm:max-w-2xl" : "sm:max-w-lg")}
         onKeyDown={handleKeyDown}
       >
+        <DialogTitle className="sr-only">
+          {newGoalDefaults.parentId ? t("newGoal.subGoalTitle") : t("newGoal.title")}
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          {t("newGoal.dialogDescription", {
+            defaultValue: "Create a goal with status, level, and parent goal details.",
+          })}
+        </DialogDescription>
+
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -211,7 +216,7 @@ export function NewGoalDialog() {
                   )}
                   onClick={() => { setStatus(s); setStatusOpen(false); }}
                 >
-                  {t(goalStatusLabels[s] ?? s, { defaultValue: s })}
+                  {translateStatusLabel(t, s)}
                 </button>
               ))}
             </PopoverContent>
