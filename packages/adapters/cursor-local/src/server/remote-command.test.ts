@@ -50,11 +50,15 @@ function createLocalSandboxRunner() {
         input.command === "bash" || input.command === "sh"
           ? resolveTestPosixShellCommand(input.command)
           : fromGitShellPath(input.command);
-      if ((input.command === "bash" || input.command === "sh") && args[0] === "-lc" && typeof args[1] === "string") {
+      if (
+        (input.command === "bash" || input.command === "sh") &&
+        (args[0] === "-lc" || args[0] === "-c") &&
+        typeof args[1] === "string"
+      ) {
         args[1] = rewriteWindowsPathsForGitShell(args[1]);
       }
       return await runChildProcess(`cursor-remote-command-${counter}`, command, args, {
-        cwd: input.cwd ?? process.cwd(),
+        cwd: fromGitShellPath(input.cwd ?? process.cwd()),
         env: input.env ?? {},
         stdin: input.stdin,
         timeoutSec: Math.max(1, Math.ceil((input.timeoutMs ?? 30_000) / 1000)),
@@ -78,6 +82,56 @@ printf '%s\\n' ok
 }
 
 describe("prepareCursorSandboxCommand", () => {
+  it("prefers the Cursor installer bin directory when the default agent entrypoint is installed there", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-remote-command-cursor-bin-"));
+    const systemHomeDir = path.join(root, "system-home");
+    const managedHomeDir = path.join(root, "managed-home");
+    const remoteWorkspace = path.join(root, "workspace");
+    const cursorAgentPath = path.join(systemHomeDir, ".cursor", "bin", "agent");
+    const remoteCursorAgentPath = toGitShellPath(cursorAgentPath);
+    const remoteSystemHomeDir = toGitShellPath(systemHomeDir);
+    const remoteLocalBinDir = toGitShellPath(path.join(systemHomeDir, ".local", "bin"));
+    const remoteCursorBinDir = toGitShellPath(path.join(systemHomeDir, ".cursor", "bin"));
+    await fs.mkdir(remoteWorkspace, { recursive: true });
+    await writeFakeAgent(cursorAgentPath);
+
+    try {
+      const result = await prepareCursorSandboxCommand({
+        runId: "run-remote-command-cursor-bin",
+        target: {
+          kind: "remote",
+          transport: "sandbox",
+          shellCommand: "bash",
+          remoteCwd: remoteWorkspace,
+          runner: createLocalSandboxRunner(),
+          timeoutMs: 30_000,
+        },
+        command: "agent",
+        cwd: remoteWorkspace,
+        env: {
+          HOME: toGitShellPath(managedHomeDir),
+          PATH: "/usr/bin:/bin",
+        },
+        remoteSystemHomeDirHint: remoteSystemHomeDir,
+        timeoutSec: 30,
+        graceSec: 5,
+      });
+
+      expect(result.command).toBe(remoteCursorAgentPath);
+      expect(result.preferredCommandPath).toBe(remoteCursorAgentPath);
+      expect(result.remoteSystemHomeDir).toBe(remoteSystemHomeDir);
+      expect(result.addedPathEntry).toBe(remoteLocalBinDir);
+      expect(result.env.PATH?.split(":").slice(0, 2)).toEqual([
+        remoteLocalBinDir,
+        remoteCursorBinDir,
+      ]);
+      expect(result.env.PATH).not.toContain(toGitShellPath(path.join(managedHomeDir, ".cursor", "bin")));
+      expect(result.env.PATH).not.toContain(toGitShellPath(path.join(managedHomeDir, ".local", "bin")));
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("keeps probing the original sandbox home after managed HOME overrides", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-remote-command-"));
     const systemHomeDir = path.join(root, "system-home");
@@ -87,6 +141,7 @@ describe("prepareCursorSandboxCommand", () => {
     const remoteSystemAgentPath = toGitShellPath(systemAgentPath);
     const remoteSystemHomeDir = toGitShellPath(systemHomeDir);
     const remoteLocalBinDir = toGitShellPath(path.join(systemHomeDir, ".local", "bin"));
+    const remoteCursorBinDir = toGitShellPath(path.join(systemHomeDir, ".cursor", "bin"));
     await fs.mkdir(remoteWorkspace, { recursive: true });
     await writeFakeAgent(systemAgentPath);
 
@@ -116,7 +171,10 @@ describe("prepareCursorSandboxCommand", () => {
       expect(result.preferredCommandPath).toBe(remoteSystemAgentPath);
       expect(result.remoteSystemHomeDir).toBe(remoteSystemHomeDir);
       expect(result.addedPathEntry).toBe(remoteLocalBinDir);
-      expect(result.env.PATH?.split(":")[0]).toBe(remoteLocalBinDir);
+      expect(result.env.PATH?.split(":").slice(0, 2)).toEqual([
+        remoteLocalBinDir,
+        remoteCursorBinDir,
+      ]);
       expect(result.env.PATH).not.toContain(toGitShellPath(path.join(managedHomeDir, ".local", "bin")));
     } finally {
       await fs.rm(root, { recursive: true, force: true });

@@ -2,11 +2,13 @@
 
 ## 1. 目的
 
-这份 runbook 用来指导 Paperclip CN 从上游 `paperclipai/paperclip` 同步代码，并保住三类长期差异：
+这份 runbook 用来指导 Paperclip CN 从上游 `paperclipai/paperclip` 同步代码，并保住五类长期关注点：
 
-- 品牌边界
 - UI 本地化与 locale 基础设施
 - Windows 兼容层
+- Electron 桌面包装链路
+- 外部 adapter 边界
+- rebrand / 品牌边界
 
 ## 2. 必读
 
@@ -63,9 +65,9 @@ git config --get-regexp "^branch\\.(master|codex/upstream-sync-YYYYMMDD)\\."
 git merge <upstream remote>/master
 ```
 
-### 4.3 长期保留差异
+### 4.3 长期保留关注点
 
-品牌边界：
+rebrand / 品牌边界：
 
 - 用户可见层保留 `Paperclip CN`、`penclipai`、`penclip.ing`、`paperclipai.cn`
 - 技术标识继续保留 `paperclip-cn`、`@penclipai/*`、`penclip`、`PAPERCLIP_*`
@@ -85,6 +87,9 @@ Windows 兼容层：
 - dev/build/runtime 脚本中的 Windows 兼容修复
 - `tsx` / watch 相关兼容修复
 - 触及 dev/runtime 脚本时，优先确认是否仍应保持 `pnpm exec node --import tsx ...` 这类更稳写法
+
+Electron 桌面包装链路：
+
 - 桌面端默认存储目录与可见品牌名解耦
   - Electron 桌面默认 `userData` 目录使用无空格 slug `penclip`
   - 可见品牌名仍是 `Paperclip CN`
@@ -94,6 +99,12 @@ Windows 兼容层：
   - `.github/workflows/release.yml` 的 stable live 路径会把桌面资产挂到同一个 GitHub Release
   - `packages/desktop-electron/scripts/dist.mjs` 通过 `PAPERCLIP_DESKTOP_RELEASE_VERSION` 注入真实 release 版本，不能回退成固定 `0.0.1`
   - macOS 构建是分开的 `x64` / `arm64`，不是 universal 包
+
+外部 adapter 边界：
+
+- Hermes、Droid 和类似第三方 adapter 通过 Adapter Manager 或显式外部 package path 安装
+- core server / UI workspace 不引入 adapter-specific imports、内置注册或强依赖
+- host UI 围绕 package / adapter type 技术标识保持通用，本地化只覆盖外围可见控件
 
 ### 4.4 范围基线
 

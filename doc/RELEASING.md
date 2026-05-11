@@ -116,6 +116,20 @@ The workflow:
 - uploads those desktop assets to the same GitHub Release as downloadable artifacts
 - runs the reusable release smoke workflow against the published `latest` dist-tag
 
+### Post-Release Verification
+
+After a live stable release completes, verify the published surfaces directly:
+
+```bash
+npm view penclip@latest version dependencies dist-tags --json
+npm view <release-enabled-package>@latest version dependencies dist-tags --json
+gh release view vYYYY.MDD.P --repo penclipai/paperclip-cn --json tagName,name,isDraft,isPrerelease,publishedAt,url,assets
+git ls-remote --tags <paperclip-cn-remote> vYYYY.MDD.P
+gh run view <release-run-id> --repo penclipai/paperclip-cn --json status,conclusion,headSha,url,jobs
+```
+
+For stable releases, the GitHub Release assets should include the supported desktop installer set listed below. Do not use this checklist to record one-off version numbers or run ids.
+
 ### Desktop Installer Assets
 
 Stable releases now also publish desktop installers through [`.github/workflows/desktop-release.yml`](../.github/workflows/desktop-release.yml).
@@ -221,6 +235,19 @@ gh workflow run release-smoke.yml -f paperclip_version=latest
 ```
 
 The main release workflow now calls that reusable smoke workflow automatically after both canary and stable publishes. Trigger `release-smoke.yml` manually when you want an isolated rerun without republishing.
+
+On Windows, a lightweight local smoke can cover the npm install path and embedded PostgreSQL first boot without Docker:
+
+```powershell
+$dir = Join-Path $env:TEMP ("paperclip-smoke-" + [guid]::NewGuid())
+$env:PORT = "3233"
+$env:PAPERCLIP_OPEN_ON_LISTEN = "false"
+npx --yes penclip@latest onboard --yes --bind loopback --data-dir $dir
+# In another terminal, check:
+Invoke-RestMethod http://127.0.0.1:3233/api/health
+```
+
+Stop the foreground server after the health response reports the expected version.
 
 Minimum checks:
 
