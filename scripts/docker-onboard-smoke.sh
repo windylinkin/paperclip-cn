@@ -259,16 +259,25 @@ fi
 
 docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
 
-docker run -d --rm \
-  --name "$CONTAINER_NAME" \
-  -p "$HOST_PORT:3100" \
-  -e HOST=0.0.0.0 \
-  -e PORT=3100 \
-  -e PAPERCLIP_DEPLOYMENT_MODE="$PAPERCLIP_DEPLOYMENT_MODE" \
-  -e PAPERCLIP_DEPLOYMENT_EXPOSURE="$PAPERCLIP_DEPLOYMENT_EXPOSURE" \
-  -e PAPERCLIP_PUBLIC_URL="$PAPERCLIP_PUBLIC_URL" \
-  -v "$DATA_DIR:/paperclip" \
-  "$IMAGE_NAME" >/dev/null
+docker_run_args=(
+  -d
+  --name "$CONTAINER_NAME"
+  -p "$HOST_PORT:3100"
+  -e HOST=0.0.0.0
+  -e PORT=3100
+  -e PAPERCLIP_DEPLOYMENT_MODE="$PAPERCLIP_DEPLOYMENT_MODE"
+  -e PAPERCLIP_DEPLOYMENT_EXPOSURE="$PAPERCLIP_DEPLOYMENT_EXPOSURE"
+  -e PAPERCLIP_PUBLIC_URL="$PAPERCLIP_PUBLIC_URL"
+  -v "$DATA_DIR:/paperclip"
+)
+
+if [[ "$SMOKE_DETACH" != "true" ]]; then
+  docker_run_args+=(--rm)
+fi
+
+docker run "${docker_run_args[@]}" "$IMAGE_NAME" >/dev/null
+
+write_metadata_file
 
 if [[ "$SMOKE_DETACH" != "true" ]]; then
   docker logs -f "$CONTAINER_NAME" &
@@ -286,8 +295,6 @@ fi
 if [[ "$SMOKE_AUTO_BOOTSTRAP" == "true" && "$PAPERCLIP_DEPLOYMENT_MODE" == "authenticated" ]]; then
   auto_bootstrap_authenticated_smoke
 fi
-
-write_metadata_file
 
 if [[ "$SMOKE_DETACH" == "true" ]]; then
   PRESERVE_CONTAINER_ON_EXIT="true"
