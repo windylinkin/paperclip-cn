@@ -25,6 +25,11 @@
     "publishFromCi": true
   },
   {
+    "dir": "packages/adapters/cursor-cloud",
+    "name": "@penclipai/adapter-cursor-cloud",
+    "publishFromCi": false
+  },
+  {
     "dir": "packages/adapters/cursor-local",
     "name": "@penclipai/adapter-cursor-local",
     "publishFromCi": true
@@ -87,6 +92,11 @@
   {
     "dir": "packages/plugins/create-paperclip-plugin",
     "name": "@penclipai/create-paperclip-plugin",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sandbox-providers/daytona",
+    "name": "@penclipai/plugin-daytona",
     "publishFromCi": true
   },
   {

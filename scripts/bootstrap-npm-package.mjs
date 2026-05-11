@@ -262,6 +262,17 @@ function isWorkspaceDependency(name, value) {
   return name.startsWith("@penclipai/") && typeof value === "string" && value.startsWith("workspace:");
 }
 
+const compatibilityAliasTargets = new Map([
+  ["@paperclipai/plugin-sdk", "@penclipai/plugin-sdk"],
+  ["@paperclipai/shared", "@penclipai/shared"],
+]);
+
+function isLocalCompatibilityDependency(name, value) {
+  return compatibilityAliasTargets.has(name) &&
+    typeof value === "string" &&
+    (value.startsWith("link:") || value.startsWith("workspace:"));
+}
+
 function resolvePublishedDependencyVersion(name) {
   const npmState = inspectNpmPackage(name);
   if (!npmState.exists) {
@@ -271,10 +282,16 @@ function resolvePublishedDependencyVersion(name) {
   return npmState.version;
 }
 
-function resolvePublishDependencies(deps = {}) {
+function resolvePublishDependencies(deps = {}, resolveDependencyVersion = resolvePublishedDependencyVersion) {
   const next = {};
   for (const [name, value] of Object.entries(deps)) {
-    next[name] = isWorkspaceDependency(name, value) ? resolvePublishedDependencyVersion(name) : value;
+    const aliasTarget = compatibilityAliasTargets.get(name);
+    if (aliasTarget && isLocalCompatibilityDependency(name, value)) {
+      next[name] = `npm:${aliasTarget}@${resolveDependencyVersion(aliasTarget)}`;
+      continue;
+    }
+
+    next[name] = isWorkspaceDependency(name, value) ? resolveDependencyVersion(name) : value;
   }
   return Object.keys(next).length > 0 ? next : undefined;
 }
@@ -291,7 +308,8 @@ function normalizeRepository(repository) {
   return next;
 }
 
-function buildPublishPackageJson(pkg) {
+function buildPublishPackageJson(pkg, options = {}) {
+  const resolveDependencyVersion = options.resolveDependencyVersion ?? resolvePublishedDependencyVersion;
   const publishConfig = pkg.pkg.publishConfig ?? {};
   const packageJson = {
     ...pkg.pkg,
@@ -300,9 +318,9 @@ function buildPublishPackageJson(pkg) {
     main: publishConfig.main ?? pkg.pkg.main,
     types: publishConfig.types ?? pkg.pkg.types,
     bin: publishConfig.bin ?? pkg.pkg.bin,
-    dependencies: resolvePublishDependencies(pkg.pkg.dependencies),
-    optionalDependencies: resolvePublishDependencies(pkg.pkg.optionalDependencies),
-    peerDependencies: resolvePublishDependencies(pkg.pkg.peerDependencies),
+    dependencies: resolvePublishDependencies(pkg.pkg.dependencies, resolveDependencyVersion),
+    optionalDependencies: resolvePublishDependencies(pkg.pkg.optionalDependencies, resolveDependencyVersion),
+    peerDependencies: resolvePublishDependencies(pkg.pkg.peerDependencies, resolveDependencyVersion),
     publishConfig: {
       access: publishConfig.access ?? "public",
     },

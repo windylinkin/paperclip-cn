@@ -119,12 +119,26 @@ function fromGitShellPath(value: string) {
   );
 }
 
-function envForGitShell(env: Record<string, string>) {
+function augmentTestPosixPath(env: Record<string, string>) {
   if (process.platform !== "win32") return env;
+  const entries = [
+    "/usr/bin",
+    "/bin",
+    "C:\\Program Files\\Git\\usr\\bin",
+    "C:\\Program Files\\Git\\bin",
+  ].filter((entry) => entry.startsWith("/") || existsSync(entry));
   return {
     ...env,
-    ...(process.env.HOME ? { HOME: toGitShellPath(process.env.HOME) } : {}),
+    PATH: [...entries, env.PATH ?? process.env.PATH ?? ""].join(path.delimiter),
   };
+}
+
+function envForGitShell(env: Record<string, string>) {
+  if (process.platform !== "win32") return env;
+  return augmentTestPosixPath({
+    ...env,
+    ...(process.env.HOME ? { HOME: toGitShellPath(process.env.HOME) } : {}),
+  });
 }
 
 async function writeRetryThenSucceedClaudeCommand(commandPath: string): Promise<void> {
@@ -212,7 +226,11 @@ function createLocalSandboxRunner() {
       const command = input.command === "sh" ? resolveTestPosixShellCommand() : input.command;
       const hostCommand = input.command === "sh" ? command : fromGitShellPath(command);
       const args = [...(input.args ?? [])];
-      if (input.command === "sh" && args[0] === "-lc" && typeof args[1] === "string") {
+      if (
+        input.command === "sh" &&
+        (args[0] === "-c" || args[0] === "-lc") &&
+        typeof args[1] === "string"
+      ) {
         args[1] = rewriteWindowsPathsForGitShell(args[1]);
       }
       const hostCwd = fromGitShellPath(input.cwd ?? process.cwd());

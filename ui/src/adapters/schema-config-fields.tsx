@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { AdapterConfigSchema, ConfigFieldSchema, CreateConfigValues } from "@penclipai/adapter-utils";
 
@@ -329,6 +330,19 @@ export function SchemaConfigFields({
   mark,
 }: AdapterConfigFieldsProps) {
   const schema = useConfigSchema(adapterType);
+  const { t } = useTranslation();
+  const tr = useCallback(
+    (value: string | undefined) => value ? t(value, { defaultValue: value }) : undefined,
+    [t],
+  );
+  const translateOptions = useCallback(
+    (options: Array<{ value: string; label: string }> | undefined) =>
+      (options ?? []).map((option) => ({
+        ...option,
+        label: tr(option.label) ?? option.label,
+      })),
+    [tr],
+  );
 
   const [defaultsApplied, setDefaultsApplied] = useState(false);
   useEffect(() => {
@@ -408,10 +422,10 @@ export function SchemaConfigFields({
             case "select": {
               const currentVal = String(readValue(field) ?? "");
               return (
-                <Field key={field.key} label={field.label} hint={field.hint}>
+                <Field key={field.key} label={tr(field.label) ?? field.label} hint={tr(field.hint)}>
                   <SelectField
                     value={currentVal}
-                    options={field.options ?? []}
+                    options={translateOptions(field.options)}
                     onChange={(v) => writeValue(field, v)}
                   />
                 </Field>
@@ -422,8 +436,8 @@ export function SchemaConfigFields({
               return (
                 <ToggleField
                   key={field.key}
-                  label={field.label}
-                  hint={field.hint}
+                  label={tr(field.label) ?? field.label}
+                  hint={tr(field.hint)}
                   checked={readValue(field) === true}
                   onChange={(v) => writeValue(field, v)}
                 />
@@ -431,7 +445,7 @@ export function SchemaConfigFields({
 
             case "number":
               return (
-                <Field key={field.key} label={field.label} hint={field.hint}>
+                <Field key={field.key} label={tr(field.label) ?? field.label} hint={tr(field.hint)}>
                   <DraftNumberInput
                     value={Number(readValue(field) ?? 0)}
                     onCommit={(v) => writeValue(field, v)}
@@ -443,7 +457,7 @@ export function SchemaConfigFields({
 
             case "textarea":
               return (
-                <Field key={field.key} label={field.label} hint={field.hint}>
+                <Field key={field.key} label={tr(field.label) ?? field.label} hint={tr(field.hint)}>
                   <DraftTextarea
                     value={String(readValue(field) ?? "")}
                     onCommit={(v) => writeValue(field, v || undefined)}
@@ -460,7 +474,7 @@ export function SchemaConfigFields({
               if (field.meta?.providerModels) {
                 const providerVal = String(readValue(schema.fields.find((f) => f.key === "provider")!) ?? "auto");
                 const modelsByProvider = field.meta.providerModels as Record<string, string[]>;
-                if (providerVal === "auto") {
+                  if (providerVal === "auto") {
                   // Auto: show all models from all providers, grouped by provider
                   const providerLabel = schema.fields.find((f) => f.key === "provider");
                   const providerOptions = providerLabel?.options ?? [];
@@ -468,7 +482,7 @@ export function SchemaConfigFields({
                     models.map((m) => ({
                       label: m,
                       value: m,
-                      group: providerOptions.find((p) => p.value === prov)?.label ?? prov,
+                      group: tr(providerOptions.find((p) => p.value === prov)?.label) ?? prov,
                     })),
                   );
                 } else {
@@ -478,17 +492,17 @@ export function SchemaConfigFields({
                   comboboxOptions = providerModels.map((m) => ({
                     label: m,
                     value: m,
-                    group: provName,
+                    group: tr(provName) ?? provName,
                   }));
                 }
               }
               return (
-                <Field key={field.key} label={field.label} hint={field.hint}>
+                <Field key={field.key} label={tr(field.label) ?? field.label} hint={tr(field.hint)}>
                   <ComboboxField
                     value={currentVal}
-                    options={comboboxOptions}
+                    options={translateOptions(comboboxOptions)}
                     onChange={(v) => writeValue(field, v || undefined)}
-                    placeholder={field.hint}
+                    placeholder={tr(field.hint)}
                   />
                 </Field>
               );
@@ -497,7 +511,7 @@ export function SchemaConfigFields({
             case "text":
             default:
               return (
-                <Field key={field.key} label={field.label} hint={field.hint}>
+                <Field key={field.key} label={tr(field.label) ?? field.label} hint={tr(field.hint)}>
                   <DraftInput
                     value={String(readValue(field) ?? "")}
                     onCommit={(v) => writeValue(field, v || undefined)}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { pickTextColorForPillBg } from "@/lib/color-contrast";
 import { Link } from "@/lib/router";
@@ -184,6 +185,16 @@ const ISSUE_THINKING_EFFORT_OPTIONS = {
   ],
 } as const;
 
+const ISSUE_THINKING_EFFORT_TRANSLATION_KEYS: Record<string, string> = {
+  "": "agentConfig.default",
+  low: "agentConfig.low",
+  medium: "agentConfig.medium",
+  high: "agentConfig.high",
+  minimal: "agentConfig.minimal",
+  xhigh: "agentConfig.xhigh",
+  max: "agentConfig.max",
+};
+
 function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -200,6 +211,12 @@ function thinkingEffortOptionsFor(adapterType: string | null | undefined) {
   if (adapterType === "codex_local") return ISSUE_THINKING_EFFORT_OPTIONS.codex_local;
   if (adapterType === "opencode_local") return ISSUE_THINKING_EFFORT_OPTIONS.opencode_local;
   return ISSUE_THINKING_EFFORT_OPTIONS.claude_local;
+}
+
+function translateIssueThinkingEffortOption(t: TFunction, option: { value: string; label: string }) {
+  return t(ISSUE_THINKING_EFFORT_TRANSLATION_KEYS[option.value] ?? option.label, {
+    defaultValue: option.label,
+  });
 }
 
 function thinkingEffortKeyFor(adapterType: string | null | undefined) {
@@ -668,7 +685,7 @@ export function IssueProperties({
   };
   const assigneeOptionsTrigger = (() => {
     if (assigneeOverrideLane === "cheap") {
-      return <span className="text-sm">Cheap model</span>;
+      return <span className="text-sm">{t("agentConfig.cheapModel", { defaultValue: "Cheap model" })}</span>;
     }
     if (assigneeOverrideLane === "custom") {
       const details = [
@@ -678,17 +695,26 @@ export function IssueProperties({
       ].filter(Boolean);
       return (
         <span className="min-w-0 text-sm break-words">
-          Custom{details.length > 0 ? ` · ${details.join(" · ")}` : " adapter options"}
+          {details.length > 0
+            ? t("issueProperties.customAdapterOptionsWithDetails", {
+              details: details.join(" · "),
+              defaultValue: "Custom · {{details}}",
+            })
+            : t("issueProperties.customAdapterOptions", { defaultValue: "Custom adapter options" })}
         </span>
       );
     }
-    return <span className="text-sm text-muted-foreground">Primary model</span>;
+    return <span className="text-sm text-muted-foreground">{t("issueProperties.primaryModel", { defaultValue: "Primary model" })}</span>;
   })();
   const assigneeOptionsContent = supportsAssigneeOverrides ? (
     <div className="w-full space-y-3 p-2">
       <div className="space-y-1.5">
-        <div className="text-xs text-muted-foreground">Model lane</div>
-        <div className="flex w-full overflow-hidden rounded-md border border-border" role="radiogroup" aria-label="Model lane">
+        <div className="text-xs text-muted-foreground">{t("newIssue.modelLane.title", { defaultValue: "Model lane" })}</div>
+        <div
+          className="flex w-full overflow-hidden rounded-md border border-border"
+          role="radiogroup"
+          aria-label={t("newIssue.modelLane.title", { defaultValue: "Model lane" })}
+        >
           {(["primary", ...(assigneeSupportsCheapLane ? (["cheap"] as const) : ([] as const)), "custom"] as const).map((lane) => (
             <button
               key={lane}
@@ -701,38 +727,42 @@ export function IssueProperties({
               )}
               onClick={() => setAssigneeOverrideLane(lane)}
             >
-              {lane === "primary" ? "Primary" : lane === "cheap" ? "Cheap" : "Custom"}
+              {lane === "primary"
+                ? t("newIssue.modelLane.primary", { defaultValue: "Primary" })
+                : lane === "cheap"
+                  ? t("newIssue.modelLane.cheap", { defaultValue: "Cheap" })
+                  : t("newIssue.modelLane.custom", { defaultValue: "Custom" })}
             </button>
           ))}
         </div>
         {assigneeOverrideLane === "cheap" ? (
           <p className="text-[11px] text-muted-foreground">
-            Sends <code>modelProfile: "cheap"</code>{" "}
+            {t("newIssue.modelLane.cheapSendsPrefix", { defaultValue: "Sends" })} <code>modelProfile: "cheap"</code>{" "}
             {assigneeCheapProfile?.adapterConfig && typeof (assigneeCheapProfile.adapterConfig as Record<string, unknown>).model === "string"
-              ? <>· adapter default <code>{String((assigneeCheapProfile.adapterConfig as Record<string, unknown>).model)}</code></>
+              ? <>{t("newIssue.modelLane.adapterDefaultPrefix", { defaultValue: "· adapter default" })} <code>{String((assigneeCheapProfile.adapterConfig as Record<string, unknown>).model)}</code></>
               : assigneeCheapProfile
-                ? <>· uses the agent&apos;s configured cheap profile</>
-                : <>· falls back to the primary model if no cheap profile is configured</>}
+                ? <>{t("newIssue.modelLane.usesCheapProfile", { defaultValue: "· uses the agent's configured cheap profile" })}</>
+                : <>{t("newIssue.modelLane.fallsBackToPrimary", { defaultValue: "· falls back to the primary model if no cheap profile is configured" })}</>}
           </p>
         ) : null}
       </div>
       {assigneeOverrideLane === "custom" ? (
         <>
           <div className="space-y-1.5">
-            <div className="text-xs text-muted-foreground">Model</div>
+            <div className="text-xs text-muted-foreground">{t("Model", { defaultValue: "Model" })}</div>
             <InlineEntitySelector
               value={assigneeOverrideModel}
               options={modelOverrideOptions}
-              placeholder="Default model"
+              placeholder={t("issueProperties.defaultModel", { defaultValue: "Default model" })}
               disablePortal
-              noneLabel="Default model"
-              searchPlaceholder="Search models..."
-              emptyMessage="No models found."
+              noneLabel={t("issueProperties.defaultModel", { defaultValue: "Default model" })}
+              searchPlaceholder={t("issueProperties.searchModels", { defaultValue: "Search models..." })}
+              emptyMessage={t("issueProperties.noModelsFound", { defaultValue: "No models found." })}
               onChange={(model) => updateAssigneeOverrideConfig({ model: model || undefined })}
             />
           </div>
           <div className="space-y-1.5">
-            <div className="text-xs text-muted-foreground">Thinking effort</div>
+            <div className="text-xs text-muted-foreground">{t("agentConfig.thinkingEffort", { defaultValue: "Thinking effort" })}</div>
             <div className="flex items-center gap-1.5 flex-wrap">
               {thinkingEffortOptionsFor(assigneeAdapterType).map((option) => (
                 <button
@@ -743,14 +773,16 @@ export function IssueProperties({
                   )}
                   onClick={() => updateAssigneeOverrideThinkingEffort(option.value)}
                 >
-                  {option.label}
+                  {translateIssueThinkingEffortOption(t, option)}
                 </button>
               ))}
             </div>
           </div>
           {assigneeAdapterType === "claude_local" ? (
             <div className="flex items-center justify-between rounded-md border border-border px-2 py-1.5">
-              <div className="text-xs text-muted-foreground">Enable Chrome (--chrome)</div>
+              <div className="text-xs text-muted-foreground">
+                {t("issueProperties.enableChromeFlag", { defaultValue: "Enable Chrome (--chrome)" })}
+              </div>
               <ToggleSwitch
                 checked={assigneeOverrideChrome}
                 onCheckedChange={(next) => updateAssigneeOverrideConfig({ chrome: next ? true : undefined })}
@@ -764,15 +796,19 @@ export function IssueProperties({
     <div className="w-full space-y-2 p-2">
       <p className="text-xs text-muted-foreground">
         {assignee
-          ? "This assignee's adapter does not expose editable issue overrides."
-          : "Select a compatible agent assignee to edit these overrides."}
+          ? t("issueProperties.noEditableIssueOverrides", {
+            defaultValue: "This assignee's adapter does not expose editable issue overrides.",
+          })
+          : t("issueProperties.selectCompatibleAssigneeForOverrides", {
+            defaultValue: "Select a compatible agent assignee to edit these overrides.",
+          })}
       </p>
       <button
         type="button"
         className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
         onClick={() => updateAssigneeAdapterOverrides(null)}
       >
-        Clear adapter options
+        {t("issueProperties.clearAdapterOptions", { defaultValue: "Clear adapter options" })}
       </button>
     </div>
   );
@@ -1835,7 +1871,7 @@ export function IssueProperties({
         {showAssigneeAdapterOptions ? (
           <PropertyPicker
             inline={inline}
-            label="Model"
+            label={t("Model", { defaultValue: "Model" })}
             open={assigneeOptionsOpen}
             onOpenChange={setAssigneeOptionsOpen}
             triggerContent={assigneeOptionsTrigger}
@@ -1846,8 +1882,8 @@ export function IssueProperties({
                 type="button"
                 className="inline-flex items-center justify-center h-5 w-5 rounded hover:bg-accent/50 transition-colors text-muted-foreground hover:text-foreground"
                 onClick={() => updateAssigneeAdapterOverrides(null)}
-                aria-label="Clear adapter options"
-                title="Clear adapter options"
+                aria-label={t("issueProperties.clearAdapterOptions", { defaultValue: "Clear adapter options" })}
+                title={t("issueProperties.clearAdapterOptions", { defaultValue: "Clear adapter options" })}
               >
                 <X className="h-3 w-3" />
               </button>

@@ -145,7 +145,9 @@ export function PluginSettings() {
       : plugin.status === "error"
         ? "destructive"
         : "secondary";
-  const pluginDescription = plugin.manifestJson.description || t("No description provided.", { defaultValue: "No description provided." });
+  const pluginDescription = plugin.manifestJson.description
+    ? t(plugin.manifestJson.description, { defaultValue: plugin.manifestJson.description })
+    : t("No description provided.", { defaultValue: "No description provided." });
   const pluginCapabilities = plugin.manifestJson.capabilities ?? [];
   const environmentDrivers = plugin.manifestJson.environmentDrivers ?? [];
   const localFolderDeclarations = plugin.manifestJson.localFolders ?? [];

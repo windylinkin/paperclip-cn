@@ -286,6 +286,8 @@ else
   VERIFY_ATTEMPTS="${NPM_PUBLISH_VERIFY_ATTEMPTS:-24}"
   VERIFY_DELAY_SECONDS="${NPM_PUBLISH_VERIFY_DELAY_SECONDS:-5}"
   REMAINING_PUBLISHED_PACKAGES=""
+  REGISTRY_STATE_VERIFY_ATTEMPTS="${NPM_REGISTRY_STATE_VERIFY_ATTEMPTS:-12}"
+  REGISTRY_STATE_VERIFY_DELAY_SECONDS="${NPM_REGISTRY_STATE_VERIFY_DELAY_SECONDS:-5}"
 
   while IFS=$'\t' read -r _pkg_dir pkg_name pkg_version; do
     [ -z "$pkg_name" ] && continue
@@ -348,7 +350,20 @@ else
     verify_args+=(--package "$pkg_name")
   done <<< "$VERSIONED_PACKAGE_INFO"
 
-  node "$REPO_ROOT/scripts/verify-release-registry-state.mjs" "${verify_args[@]}"
+  release_info "  Waiting for npm dist-tags and package metadata to converge..."
+  if wait_for_release_registry_state \
+    "$REGISTRY_STATE_VERIFY_ATTEMPTS" \
+    "$REGISTRY_STATE_VERIFY_DELAY_SECONDS" \
+    "${verify_args[@]}"; then
+    :
+  else
+    verify_status=$?
+    if [ "$verify_status" -eq 2 ]; then
+      release_fail "publish completed, but registry verification failed immediately for ${TARGET_PUBLISH_VERSION}; dist-tag state is wrong or requires operator intervention"
+    fi
+
+    release_fail "publish completed, but npm dist-tags or registry metadata never converged for ${TARGET_PUBLISH_VERSION}"
+  fi
 fi
 
 release_info ""

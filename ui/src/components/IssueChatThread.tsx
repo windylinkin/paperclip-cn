@@ -477,15 +477,21 @@ function IssueChatFallbackThread({
   emptyMessage: string;
   variant: "full" | "embedded";
 }) {
+  const { t } = useTranslation(undefined, { useSuspense: false });
+
   return (
     <div className={cn(variant === "embedded" ? "space-y-3" : "space-y-4")}>
       <div className="rounded-xl border border-amber-300/60 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/20 dark:text-amber-200">
         <div className="flex items-start gap-2">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="space-y-1">
-            <p className="font-medium">Chat renderer hit an internal state error.</p>
+            <p className="font-medium">
+              {t("issueChat.fallbackErrorTitle", { defaultValue: "Chat renderer hit an internal state error." })}
+            </p>
             <p className="text-xs opacity-80">
-              Showing a safe fallback transcript instead of crashing the issues page.
+              {t("issueChat.fallbackErrorBody", {
+                defaultValue: "Showing a safe fallback transcript instead of crashing the issues page.",
+              })}
             </p>
           </div>
         </div>
@@ -518,7 +524,9 @@ function IssueChatFallbackThread({
                   {lines.length > 0 ? lines.map((line, index) => (
                     <MarkdownBody key={`${message.id}:fallback:${index}`}>{line}</MarkdownBody>
                   )) : (
-                    <p className="text-sm text-muted-foreground">No message content.</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t("No message content.", { defaultValue: "No message content." })}
+                    </p>
                   )}
                 </div>
               </div>
@@ -2067,6 +2075,140 @@ function isStaleSuccessfulRunHandoffNotice(input: {
   return false;
 }
 
+const KNOWN_SYSTEM_NOTICE_TEXT_KEYS: Record<string, { key: string; defaultValue: string }> = {
+  "Missing issue disposition": {
+    key: "systemNotice.successfulRunHandoff.missingDispositionTitle",
+    defaultValue: "Missing issue disposition",
+  },
+  "Paperclip needs a disposition before this issue can continue.": {
+    key: "systemNotice.successfulRunHandoff.missingDispositionBody",
+    defaultValue: "Paperclip needs a disposition before this issue can continue.",
+  },
+  "Missing disposition recovery blocked": {
+    key: "systemNotice.successfulRunHandoff.recoveryBlockedTitle",
+    defaultValue: "Missing disposition recovery blocked",
+  },
+  "Paperclip could not resolve this issue's missing disposition automatically. The issue is blocked on a recovery owner.": {
+    key: "systemNotice.successfulRunHandoff.recoveryBlockedBody",
+    defaultValue: "Paperclip could not resolve this issue's missing disposition automatically. The issue is blocked on a recovery owner.",
+  },
+  "Required action": {
+    key: "systemNotice.successfulRunHandoff.requiredAction",
+    defaultValue: "Required action",
+  },
+  "Run evidence": {
+    key: "systemNotice.successfulRunHandoff.runEvidence",
+    defaultValue: "Run evidence",
+  },
+  "Recovery owner": {
+    key: "systemNotice.successfulRunHandoff.recoveryOwner",
+    defaultValue: "Recovery owner",
+  },
+  "Source issue": {
+    key: "systemNotice.successfulRunHandoff.sourceIssue",
+    defaultValue: "Source issue",
+  },
+  "Assignee": {
+    key: "systemNotice.successfulRunHandoff.assignee",
+    defaultValue: "Assignee",
+  },
+  "Missing disposition": {
+    key: "systemNotice.successfulRunHandoff.missingDisposition",
+    defaultValue: "Missing disposition",
+  },
+  "Valid dispositions": {
+    key: "systemNotice.successfulRunHandoff.validDispositions",
+    defaultValue: "Valid dispositions",
+  },
+  "Successful run": {
+    key: "systemNotice.successfulRunHandoff.successfulRun",
+    defaultValue: "Successful run",
+  },
+  "Run status": {
+    key: "systemNotice.successfulRunHandoff.runStatus",
+    defaultValue: "Run status",
+  },
+  "Normalized cause": {
+    key: "systemNotice.successfulRunHandoff.normalizedCause",
+    defaultValue: "Normalized cause",
+  },
+  "Detected progress": {
+    key: "systemNotice.successfulRunHandoff.detectedProgress",
+    defaultValue: "Detected progress",
+  },
+  "Automatic retry": {
+    key: "systemNotice.successfulRunHandoff.automaticRetry",
+    defaultValue: "Automatic retry",
+  },
+  "Recovery issue": {
+    key: "systemNotice.successfulRunHandoff.recoveryIssue",
+    defaultValue: "Recovery issue",
+  },
+  "Source assignee": {
+    key: "systemNotice.successfulRunHandoff.sourceAssignee",
+    defaultValue: "Source assignee",
+  },
+  "Suggested action": {
+    key: "systemNotice.successfulRunHandoff.suggestedAction",
+    defaultValue: "Suggested action",
+  },
+  "Source run": {
+    key: "systemNotice.successfulRunHandoff.sourceRun",
+    defaultValue: "Source run",
+  },
+  "Corrective handoff run": {
+    key: "systemNotice.successfulRunHandoff.correctiveHandoffRun",
+    defaultValue: "Corrective handoff run",
+  },
+  "Latest issue status": {
+    key: "systemNotice.successfulRunHandoff.latestIssueStatus",
+    defaultValue: "Latest issue status",
+  },
+  "Latest handoff run status": {
+    key: "systemNotice.successfulRunHandoff.latestHandoffRunStatus",
+    defaultValue: "Latest handoff run status",
+  },
+};
+
+function translateKnownSystemNoticeText<T extends string | null | undefined>(text: T, t: TFunction): T | string {
+  const trimmed = typeof text === "string" ? text.trim() : "";
+  if (!trimmed) return text;
+  const entry = KNOWN_SYSTEM_NOTICE_TEXT_KEYS[trimmed];
+  return entry ? t(entry.key, { defaultValue: entry.defaultValue }) : text;
+}
+
+function translateSystemNoticeDefaultLabel(label: string | undefined, t: TFunction) {
+  switch (label) {
+    case "System notice":
+      return t("systemNotice.notice", { defaultValue: "System notice" });
+    case "System warning":
+      return t("systemNotice.warning", { defaultValue: "System warning" });
+    case "System alert":
+      return t("systemNotice.alert", { defaultValue: "System alert" });
+    default:
+      return label;
+  }
+}
+
+function translateSystemNoticeMetadata(
+  sections: SystemNoticeMetadataSection[] | undefined,
+  t: TFunction,
+): SystemNoticeMetadataSection[] | undefined {
+  if (!sections) return undefined;
+  return sections.map((section) => {
+    const translated: SystemNoticeMetadataSection = {
+      rows: section.rows.map((row) => ({
+        ...row,
+        label: translateKnownSystemNoticeText(row.label, t) ?? row.label,
+      })),
+    };
+    if (section.title) {
+      translated.title = translateKnownSystemNoticeText(section.title, t) ?? section.title;
+    }
+    return translated;
+  });
+}
+
 function StaleDispositionWarningMetadataRow({ row }: { row: SystemNoticeMetadataRow }) {
   const label = (
     <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -2242,7 +2384,10 @@ function StaleDispositionWarningRow({
   const [open, setOpen] = useState(false);
   const detailsId = useId();
   const { t } = useTranslation(undefined, { useSuspense: false });
-  const sections = mapCommentMetadataToSystemNoticeSections(metadata, { runAgentId });
+  const sections = translateSystemNoticeMetadata(
+    mapCommentMetadataToSystemNoticeSections(metadata, { runAgentId }),
+    t,
+  ) ?? [];
 
   return (
     <div id={anchorId} data-testid="stale-disposition-warning">
@@ -2288,6 +2433,7 @@ function SystemNoticeCommentRow({
   anchorId?: string;
 }) {
   const { onImageClick, agentMap, issueStatus, successfulRunHandoff } = useContext(IssueChatCtx);
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const custom = message.metadata.custom as Record<string, unknown>;
   const presentation = isIssueCommentPresentation(custom.presentation) ? custom.presentation : null;
   const commentMetadata = isIssueCommentMetadata(custom.commentMetadata) ? custom.commentMetadata : null;
@@ -2299,6 +2445,7 @@ function SystemNoticeCommentRow({
     .filter((p): p is { type: "text"; text: string } => p.type === "text")
     .map((p) => p.text)
     .join("\n\n");
+  const visibleBodyText = translateKnownSystemNoticeText(bodyText, t);
   const staleSuccessfulRunHandoffNotice = isStaleSuccessfulRunHandoffNotice({
     bodyText,
     issueStatus,
@@ -2328,16 +2475,21 @@ function SystemNoticeCommentRow({
     metadata: commentMetadata,
     body: (
       <MarkdownBody className="text-sm leading-6" softBreaks onImageClick={onImageClick}>
-        {bodyText}
+        {visibleBodyText}
       </MarkdownBody>
     ),
     timestamp: message.createdAt ? new Date(message.createdAt).toISOString() : undefined,
     source,
     runAgentId,
   });
+  props.label = translateKnownSystemNoticeText(
+    translateSystemNoticeDefaultLabel(props.label, t),
+    t,
+  );
+  props.metadata = translateSystemNoticeMetadata(props.metadata, t);
 
   const handleCopy = () => {
-    void navigator.clipboard.writeText(bodyText).then(() => {
+    void navigator.clipboard.writeText(visibleBodyText).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -2385,8 +2537,8 @@ function SystemNoticeCommentRow({
             <button
               type="button"
               className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-              title="Copy link"
-              aria-label="Copy link to system notice"
+              title={t("issueChat.copySystemNoticeLink", { defaultValue: "Copy link" })}
+              aria-label={t("issueChat.copySystemNoticeLinkAria", { defaultValue: "Copy link to system notice" })}
               onClick={handleCopyLink}
             >
               {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Paperclip className="h-3.5 w-3.5" />}
@@ -2395,8 +2547,8 @@ function SystemNoticeCommentRow({
           <button
             type="button"
             className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
-            title="Copy notice text"
-            aria-label="Copy system notice"
+            title={t("issueChat.copySystemNoticeText", { defaultValue: "Copy notice text" })}
+            aria-label={t("issueChat.copySystemNoticeTextAria", { defaultValue: "Copy system notice" })}
             onClick={handleCopy}
           >
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}

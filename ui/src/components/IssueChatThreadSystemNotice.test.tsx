@@ -9,6 +9,46 @@ import { IssueChatThread } from "./IssueChatThread";
 import type { IssueChatComment } from "../lib/issue-chat-messages";
 import type { Agent, SuccessfulRunHandoffState } from "@penclipai/shared";
 
+const { i18nLanguageRef, i18nTranslations } = vi.hoisted(() => ({
+  i18nLanguageRef: { current: "en" },
+  i18nTranslations: {
+    "zh-CN": {
+      "systemNotice.alert": "系统警报",
+      "systemNotice.notice": "系统通知",
+      "systemNotice.warning": "系统警告",
+      "systemNotice.successfulRunHandoff.missingDispositionTitle": "缺少任务处置状态",
+      "systemNotice.successfulRunHandoff.missingDispositionBody": "需要先为这个任务记录处置状态，才能继续推进。",
+      "systemNotice.successfulRunHandoff.requiredAction": "需要处理",
+      "systemNotice.successfulRunHandoff.runEvidence": "运行依据",
+      "systemNotice.successfulRunHandoff.sourceIssue": "来源任务",
+      "systemNotice.successfulRunHandoff.successfulRun": "成功运行",
+    },
+  } as Record<string, Record<string, string>>,
+}));
+
+vi.mock("react-i18next", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-i18next")>();
+  const interpolate = (text: string, options?: Record<string, unknown>) =>
+    text.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string, options?: Record<string, unknown>) => {
+        const translated = i18nTranslations[i18nLanguageRef.current]?.[key];
+        const fallback = typeof options?.defaultValue === "string" ? options.defaultValue : key;
+        return interpolate(translated ?? fallback, options);
+      },
+      i18n: {
+        language: i18nLanguageRef.current,
+        resolvedLanguage: i18nLanguageRef.current,
+        changeLanguage: vi.fn(async (language: string) => {
+          i18nLanguageRef.current = language;
+        }),
+      },
+    }),
+  };
+});
+
 vi.mock("@assistant-ui/react", () => ({
   AssistantRuntimeProvider: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   useAui: () => ({ thread: () => ({ append: async () => undefined }) }),
@@ -59,6 +99,7 @@ let container: HTMLDivElement;
 let root: ReturnType<typeof createRoot>;
 
 beforeEach(() => {
+  i18nLanguageRef.current = "en";
   container = document.createElement("div");
   document.body.appendChild(container);
   window.scrollTo = vi.fn();
@@ -146,6 +187,55 @@ describe("IssueChatThread system notice routing", () => {
     const toggle = row?.querySelector("button[aria-expanded]") as HTMLButtonElement | null;
     expect(toggle?.getAttribute("aria-expanded")).toBe("false");
     expect(container.querySelectorAll('[data-message-role="user"]').length).toBe(0);
+  });
+
+  it("localizes known successful-run handoff system notices in Chinese", () => {
+    i18nLanguageRef.current = "zh-CN";
+    const comment: IssueChatComment = {
+      id: "comment-system-zh",
+      companyId: "company-1",
+      issueId: "issue-1",
+      authorType: "system",
+      authorAgentId: null,
+      authorUserId: null,
+      body: "Paperclip needs a disposition before this issue can continue.",
+      presentation: {
+        kind: "system_notice",
+        tone: "warning",
+        title: "Missing issue disposition",
+        detailsDefaultOpen: true,
+      },
+      metadata: {
+        version: 1,
+        sections: [
+          {
+            title: "Required action",
+            rows: [
+              { type: "issue_link", label: "Source issue", issueId: "i1", identifier: "PAP-3440", title: "Recovery" },
+            ],
+          },
+          {
+            title: "Run evidence",
+            rows: [
+              { type: "run_link", label: "Successful run", runId: "run-1", title: "succeeded" },
+            ],
+          },
+        ],
+      },
+      ...baseTimestamps,
+    };
+
+    renderThread([comment]);
+
+    const status = container.querySelector('[role="status"]');
+    expect(status?.getAttribute("aria-label")).toBe("缺少任务处置状态");
+    expect(container.textContent).toContain("需要先为这个任务记录处置状态");
+    expect(container.textContent).toContain("需要处理");
+    expect(container.textContent).toContain("来源任务");
+    expect(container.textContent).toContain("运行依据");
+    expect(container.textContent).toContain("成功运行");
+    expect(container.textContent).not.toContain("Missing issue disposition");
+    expect(container.textContent).not.toContain("Paperclip needs a disposition");
   });
 
   it("expands metadata when detailsDefaultOpen is true", () => {

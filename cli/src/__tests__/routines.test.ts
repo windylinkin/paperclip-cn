@@ -246,5 +246,5 @@ describeEmbeddedPostgres("disableAllRoutinesInConfig", () => {
       .from(routines)
       .where(eq(routines.id, otherCompanyRoutineId));
     expect(otherCompanyRoutine[0]?.status).toBe("active");
-  });
+  }, EMBEDDED_POSTGRES_TIMEOUT);
 });

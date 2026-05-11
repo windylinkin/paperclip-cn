@@ -69,6 +69,13 @@ import {
   modelProfiles as cursorModelProfiles,
 } from "@penclipai/adapter-cursor-local";
 import {
+  execute as cursorCloudExecute,
+  getConfigSchema as getCursorCloudConfigSchema,
+  sessionCodec as cursorCloudSessionCodec,
+  testEnvironment as cursorCloudTestEnvironment,
+} from "@penclipai/adapter-cursor-cloud/server";
+import { agentConfigurationDoc as cursorCloudAgentConfigurationDoc } from "@penclipai/adapter-cursor-cloud";
+import {
   execute as geminiExecute,
   listGeminiSkills,
   syncGeminiSkills,
@@ -310,6 +317,21 @@ const cursorLocalAdapter: ServerAdapterModule = {
   agentConfigurationDoc: cursorAgentConfigurationDoc,
 };
 
+const cursorCloudAdapter: ServerAdapterModule = {
+  type: "cursor_cloud",
+  execute: cursorCloudExecute,
+  testEnvironment: cursorCloudTestEnvironment,
+  sessionCodec: cursorCloudSessionCodec,
+  sessionManagement: getAdapterSessionManagement("cursor_cloud") ?? undefined,
+  models: [],
+  supportsLocalAgentJwt: false,
+  supportsInstructionsBundle: true,
+  instructionsPathKey: "instructionsFilePath",
+  requiresMaterializedRuntimeSkills: false,
+  agentConfigurationDoc: cursorCloudAgentConfigurationDoc,
+  getConfigSchema: getCursorCloudConfigSchema,
+};
+
 const geminiLocalAdapter: ServerAdapterModule = {
   type: "gemini_local",
   execute: wrapExecuteWithPaperclipPromptLayers(geminiExecute),
@@ -415,6 +437,7 @@ function registerBuiltInAdapters() {
     openCodeLocalAdapter,
     piLocalAdapter,
     qwenLocalAdapter,
+    cursorCloudAdapter,
     cursorLocalAdapter,
     geminiLocalAdapter,
     openclawGatewayAdapter,

@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ChevronDown,
   ChevronRight,
@@ -20,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { translateInstant } from "@/i18n";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -97,6 +99,13 @@ export interface JsonSchemaFormProps {
 // Helpers
 // ---------------------------------------------------------------------------
 
+function translateSchemaText(
+  t: ReturnType<typeof useTranslation>["t"],
+  value: string | undefined,
+): string | undefined {
+  return value ? t(value, { defaultValue: value }) : undefined;
+}
+
 /** Resolve the primary type string from a schema node. */
 export function resolveType(schema: JsonSchemaNode): string {
   if (schema.enum) return "enum";
@@ -160,7 +169,9 @@ export function validateField(
 
   // Required check
   if (isRequired && (value === undefined || value === null || value === "")) {
-    return "This field is required";
+    return translateInstant("jsonSchemaForm.error.required", {
+      defaultValue: "This field is required",
+    });
   }
 
   // Skip further validation if empty and not required
@@ -169,10 +180,16 @@ export function validateField(
   if (type === "string" || type === "secret-ref") {
     const str = String(value);
     if (schema.minLength != null && str.length < schema.minLength) {
-      return `Must be at least ${schema.minLength} characters`;
+      return translateInstant("jsonSchemaForm.error.minLength", {
+        count: schema.minLength,
+        defaultValue: "Must be at least {{count}} characters",
+      });
     }
     if (schema.maxLength != null && str.length > schema.maxLength) {
-      return `Must be at most ${schema.maxLength} characters`;
+      return translateInstant("jsonSchemaForm.error.maxLength", {
+        count: schema.maxLength,
+        defaultValue: "Must be at most {{count}} characters",
+      });
     }
     if (schema.pattern) {
       // Guard against ReDoS: reject overly complex patterns from plugin JSON Schemas.
@@ -182,7 +199,10 @@ export function validateField(
         try {
           const re = new RegExp(schema.pattern);
           if (!re.test(str)) {
-            return `Must match pattern: ${schema.pattern}`;
+            return translateInstant("jsonSchemaForm.error.pattern", {
+              pattern: schema.pattern,
+              defaultValue: "Must match pattern: {{pattern}}",
+            });
           }
         } catch {
           // Invalid regex in schema — skip
@@ -193,34 +213,61 @@ export function validateField(
 
   if (type === "number" || type === "integer") {
     const num = Number(value);
-    if (isNaN(num)) return "Must be a valid number";
+    if (isNaN(num)) {
+      return translateInstant("jsonSchemaForm.error.validNumber", {
+        defaultValue: "Must be a valid number",
+      });
+    }
     if (schema.minimum != null && num < schema.minimum) {
-      return `Must be at least ${schema.minimum}`;
+      return translateInstant("jsonSchemaForm.error.minimum", {
+        count: schema.minimum,
+        defaultValue: "Must be at least {{count}}",
+      });
     }
     if (schema.maximum != null && num > schema.maximum) {
-      return `Must be at most ${schema.maximum}`;
+      return translateInstant("jsonSchemaForm.error.maximum", {
+        count: schema.maximum,
+        defaultValue: "Must be at most {{count}}",
+      });
     }
     if (schema.exclusiveMinimum != null && num <= schema.exclusiveMinimum) {
-      return `Must be greater than ${schema.exclusiveMinimum}`;
+      return translateInstant("jsonSchemaForm.error.exclusiveMinimum", {
+        count: schema.exclusiveMinimum,
+        defaultValue: "Must be greater than {{count}}",
+      });
     }
     if (schema.exclusiveMaximum != null && num >= schema.exclusiveMaximum) {
-      return `Must be less than ${schema.exclusiveMaximum}`;
+      return translateInstant("jsonSchemaForm.error.exclusiveMaximum", {
+        count: schema.exclusiveMaximum,
+        defaultValue: "Must be less than {{count}}",
+      });
     }
     if (type === "integer" && !Number.isInteger(num)) {
-      return "Must be a whole number";
+      return translateInstant("jsonSchemaForm.error.integer", {
+        defaultValue: "Must be a whole number",
+      });
     }
     if (schema.multipleOf != null && num % schema.multipleOf !== 0) {
-      return `Must be a multiple of ${schema.multipleOf}`;
+      return translateInstant("jsonSchemaForm.error.multipleOf", {
+        count: schema.multipleOf,
+        defaultValue: "Must be a multiple of {{count}}",
+      });
     }
   }
 
   if (type === "array") {
     const arr = value as unknown[];
     if (schema.minItems != null && arr.length < schema.minItems) {
-      return `Must have at least ${schema.minItems} items`;
+      return translateInstant("jsonSchemaForm.error.minItems", {
+        count: schema.minItems,
+        defaultValue: "Must have at least {{count}} items",
+      });
     }
     if (schema.maxItems != null && arr.length > schema.maxItems) {
-      return `Must have at most ${schema.maxItems} items`;
+      return translateInstant("jsonSchemaForm.error.maxItems", {
+        count: schema.maxItems,
+        defaultValue: "Must have at most {{count}} items",
+      });
     }
   }
 
@@ -328,6 +375,9 @@ const FieldWrapper = React.memo(({
   disabled,
   children,
 }: FieldWrapperProps) => {
+  const { t } = useTranslation();
+  const translatedError = error ? t(error, { defaultValue: error }) : undefined;
+
   return (
     <div className={cn("space-y-2", disabled && "opacity-60")}>
       <div className="flex items-center justify-between">
@@ -344,8 +394,8 @@ const FieldWrapper = React.memo(({
           {description}
         </p>
       )}
-      {error && (
-        <p className="text-[12px] font-medium text-destructive">{error}</p>
+      {translatedError && (
+        <p className="text-[12px] font-medium text-destructive">{translatedError}</p>
       )}
     </div>
   );
@@ -386,33 +436,38 @@ const BooleanField = React.memo(({
   isRequired?: boolean;
   description?: string;
   error?: string;
-}) => (
-  <div className="flex items-start space-x-3 space-y-0">
-    <Checkbox
-      id={id}
-      checked={!!value}
-      onCheckedChange={onChange}
-      disabled={disabled}
-    />
-    <div className="grid gap-1.5 leading-none">
-      {label && (
-        <Label
-          htmlFor={id}
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          {label}
-          {isRequired && <span className="ml-1 text-destructive">*</span>}
-        </Label>
-      )}
-      {description && (
-        <p className="text-xs text-muted-foreground">{description}</p>
-      )}
-      {error && (
-        <p className="text-xs font-medium text-destructive">{error}</p>
-      )}
+}) => {
+  const { t } = useTranslation();
+  const translatedError = error ? t(error, { defaultValue: error }) : undefined;
+
+  return (
+    <div className="flex items-start space-x-3 space-y-0">
+      <Checkbox
+        id={id}
+        checked={!!value}
+        onCheckedChange={onChange}
+        disabled={disabled}
+      />
+      <div className="grid gap-1.5 leading-none">
+        {label && (
+          <Label
+            htmlFor={id}
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            {label}
+            {isRequired && <span className="ml-1 text-destructive">*</span>}
+          </Label>
+        )}
+        {description && (
+          <p className="text-xs text-muted-foreground">{description}</p>
+        )}
+        {translatedError && (
+          <p className="text-xs font-medium text-destructive">{translatedError}</p>
+        )}
+      </div>
     </div>
-  </div>
-));
+  );
+});
 
 BooleanField.displayName = "BooleanField";
 
@@ -437,32 +492,36 @@ const EnumField = React.memo(({
   description?: string;
   error?: string;
   options: unknown[];
-}) => (
-  <FieldWrapper
-    label={label}
-    description={description}
-    required={isRequired}
-    error={error}
-    disabled={disabled}
-  >
-    <Select
-      value={String(value ?? "")}
-      onValueChange={onChange}
+}) => {
+  const { t } = useTranslation();
+
+  return (
+    <FieldWrapper
+      label={label}
+      description={description}
+      required={isRequired}
+      error={error}
       disabled={disabled}
     >
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Select an option" />
-      </SelectTrigger>
-      <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={String(option)} value={String(option)}>
-            {String(option)}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  </FieldWrapper>
-));
+      <Select
+        value={String(value ?? "")}
+        onValueChange={onChange}
+        disabled={disabled}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder={t("jsonSchemaForm.selectOption")} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={String(option)} value={String(option)}>
+              {String(option)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </FieldWrapper>
+  );
+});
 
 EnumField.displayName = "EnumField";
 
@@ -489,12 +548,14 @@ const SecretField = React.memo(({
   defaultValue?: unknown;
 }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const { t } = useTranslation();
+
   return (
     <FieldWrapper
       label={label}
       description={
         description ||
-        "This secret is stored securely via the Paperclip secret provider."
+        t("jsonSchemaForm.secretDescription")
       }
       required={isRequired}
       error={error}
@@ -524,7 +585,7 @@ const SecretField = React.memo(({
             <Eye className="h-4 w-4 text-muted-foreground" />
           )}
           <span className="sr-only">
-            {isVisible ? "Hide secret" : "Show secret"}
+            {isVisible ? t("jsonSchemaForm.hideSecret") : t("jsonSchemaForm.showSecret")}
           </span>
         </Button>
       </div>
@@ -667,15 +728,18 @@ const ArrayField = React.memo(({
   const items = Array.isArray(value) ? value : [];
   const itemSchema = propSchema.items as JsonSchemaNode;
   const isComplex = resolveType(itemSchema) === "object";
+  const { t } = useTranslation();
+  const description = translateSchemaText(t, propSchema.description);
+  const translatedError = error ? t(error, { defaultValue: error }) : undefined;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <Label className="text-sm font-medium">{label}</Label>
-          {propSchema.description && (
+          {description && (
             <p className="text-xs text-muted-foreground">
-              {propSchema.description}
+              {description}
             </p>
           )}
         </div>
@@ -694,7 +758,7 @@ const ArrayField = React.memo(({
           }}
         >
           <Plus className="mr-2 h-4 w-4" />
-          {isComplex ? "Add item" : "Add"}
+          {isComplex ? t("jsonSchemaForm.addItem") : t("jsonSchemaForm.add")}
         </Button>
       </div>
 
@@ -706,7 +770,7 @@ const ArrayField = React.memo(({
           >
             <div className="flex-1">
               <div className="mb-2 text-xs font-medium text-muted-foreground">
-                Item {index + 1}
+                {t("jsonSchemaForm.itemLabel", { count: index + 1 })}
               </div>
               <FormField
                 propSchema={itemSchema}
@@ -739,18 +803,18 @@ const ArrayField = React.memo(({
               }}
             >
               <Trash2 className="h-4 w-4" />
-              <span className="sr-only">Remove item</span>
+              <span className="sr-only">{t("jsonSchemaForm.removeItem")}</span>
             </Button>
           </div>
         ))}
         {items.length === 0 && (
           <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
-            No items added yet.
+            {t("jsonSchemaForm.noItems")}
           </div>
         )}
       </div>
-      {error && (
-        <p className="text-xs font-medium text-destructive">{error}</p>
+      {translatedError && (
+        <p className="text-xs font-medium text-destructive">{translatedError}</p>
       )}
     </div>
   );
@@ -779,6 +843,8 @@ const ObjectField = React.memo(({
   path: string;
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { t } = useTranslation();
+  const description = translateSchemaText(t, propSchema.description);
   const handleObjectChange = (newVal: Record<string, unknown>) => {
     onChange(newVal);
   };
@@ -794,9 +860,9 @@ const ObjectField = React.memo(({
           <Label className="cursor-pointer text-sm font-semibold">
             {label}
           </Label>
-          {propSchema.description && (
+          {description && (
             <p className="text-xs text-muted-foreground">
-              {propSchema.description}
+              {description}
             </p>
           )}
         </div>
@@ -844,6 +910,9 @@ const FormField = React.memo(({
 }: FormFieldProps) => {
   const type = resolveType(propSchema);
   const isReadOnly = disabled || propSchema.readOnly === true;
+  const { t } = useTranslation();
+  const translatedLabel = label ? t(label, { defaultValue: label }) : label;
+  const description = translateSchemaText(t, propSchema.description);
 
   switch (type) {
     case "boolean":
@@ -853,9 +922,9 @@ const FormField = React.memo(({
           value={value}
           onChange={onChange}
           disabled={isReadOnly}
-          label={label}
+          label={translatedLabel}
           isRequired={isRequired}
-          description={propSchema.description}
+          description={description}
           error={error}
         />
       );
@@ -866,9 +935,9 @@ const FormField = React.memo(({
           value={value}
           onChange={onChange}
           disabled={isReadOnly}
-          label={label}
+          label={translatedLabel}
           isRequired={isRequired}
-          description={propSchema.description}
+          description={description}
           error={error}
           options={propSchema.enum ?? []}
         />
@@ -880,9 +949,9 @@ const FormField = React.memo(({
           value={value}
           onChange={onChange}
           disabled={isReadOnly}
-          label={label}
+          label={translatedLabel}
           isRequired={isRequired}
-          description={propSchema.description}
+          description={description}
           error={error}
           defaultValue={propSchema.default}
         />
@@ -895,9 +964,9 @@ const FormField = React.memo(({
           value={value}
           onChange={onChange}
           disabled={isReadOnly}
-          label={label}
+          label={translatedLabel}
           isRequired={isRequired}
-          description={propSchema.description}
+          description={description}
           error={error}
           defaultValue={propSchema.default}
           type={type as "number" | "integer"}
@@ -912,7 +981,7 @@ const FormField = React.memo(({
           onChange={onChange}
           error={error}
           disabled={isReadOnly}
-          label={label}
+          label={translatedLabel}
           errors={errors}
           path={path}
         />
@@ -925,7 +994,7 @@ const FormField = React.memo(({
           value={value}
           onChange={onChange}
           disabled={isReadOnly}
-          label={label}
+          label={translatedLabel}
           errors={errors}
           path={path}
         />
@@ -937,9 +1006,9 @@ const FormField = React.memo(({
           value={value}
           onChange={onChange}
           disabled={isReadOnly}
-          label={label}
+          label={translatedLabel}
           isRequired={isRequired}
-          description={propSchema.description}
+          description={description}
           error={error}
           defaultValue={propSchema.default}
           format={propSchema.format}
@@ -969,6 +1038,7 @@ export function JsonSchemaForm({
   className,
 }: JsonSchemaFormProps) {
   const type = resolveType(schema);
+  const { t } = useTranslation();
 
   const handleRootScalarChange = useCallback((newVal: unknown) => {
     // If root is a scalar, values IS the value
@@ -1014,7 +1084,7 @@ export function JsonSchemaForm({
           className,
         )}
       >
-        No configuration options available.
+        {t("jsonSchemaForm.noConfigurationOptions")}
       </div>
     );
   }

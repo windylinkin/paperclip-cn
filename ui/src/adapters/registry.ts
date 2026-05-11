@@ -3,6 +3,7 @@ import { acpxLocalUIAdapter } from "./acpx-local";
 import { claudeLocalUIAdapter } from "./claude-local";
 import { codeBuddyLocalUIAdapter } from "./codebuddy-local";
 import { codexLocalUIAdapter } from "./codex-local";
+import { cursorCloudUIAdapter } from "./cursor-cloud";
 import { cursorLocalUIAdapter } from "./cursor";
 import { geminiLocalUIAdapter } from "./gemini-local";
 import { openCodeLocalUIAdapter } from "./opencode-local";
@@ -55,6 +56,7 @@ function registerBuiltInUIAdapters() {
     claudeLocalUIAdapter,
     codeBuddyLocalUIAdapter,
     codexLocalUIAdapter,
+    cursorCloudUIAdapter,
     geminiLocalUIAdapter,
     openCodeLocalUIAdapter,
     piLocalUIAdapter,

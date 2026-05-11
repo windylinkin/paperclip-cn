@@ -99,7 +99,7 @@ export function BudgetIncidentCard({
               value={draftAmount}
               onChange={(event) => setDraftAmount(event.target.value)}
               inputMode="decimal"
-              placeholder={t("0.00", { defaultValue: "0.00" })}
+              placeholder="0.00"
             />
             <Button
               className="gap-2"

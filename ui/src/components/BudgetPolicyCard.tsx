@@ -138,7 +138,7 @@ export function BudgetPolicyCard({
           onChange={(event) => setDraftBudget(event.target.value)}
           className="mt-2"
           inputMode="decimal"
-          placeholder={t("0.00", { defaultValue: "0.00" })}
+          placeholder="0.00"
         />
       </div>
       <Button

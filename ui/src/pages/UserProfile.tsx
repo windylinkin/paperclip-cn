@@ -77,10 +77,10 @@ function WindowColumn({ stats, t }: { stats: UserProfileWindowStats; t: ReturnTy
       </div>
 
       <div className="grid grid-cols-2 gap-x-5 gap-y-3">
-        <Metric value={formatNumber(stats.touchedIssues)} label="Touched" />
-        <Metric value={formatNumber(stats.completedIssues)} label="Completed" />
-        <Metric value={formatNumber(stats.commentCount)} label="Comments" />
-        <Metric value={formatNumber(stats.activityCount)} label="Actions" />
+        <Metric value={formatNumber(stats.touchedIssues)} label={t("userProfile.touched", { defaultValue: "Touched" })} />
+        <Metric value={formatNumber(stats.completedIssues)} label={t("userProfile.completed", { defaultValue: "Completed" })} />
+        <Metric value={formatNumber(stats.commentCount)} label={t("userProfile.comments", { defaultValue: "Comments" })} />
+        <Metric value={formatNumber(stats.activityCount)} label={t("userProfile.actions", { defaultValue: "Actions" })} />
       </div>
 
       <div className="grid grid-cols-2 gap-x-5 gap-y-1.5 pt-3 text-xs tabular-nums text-muted-foreground">
@@ -88,9 +88,9 @@ function WindowColumn({ stats, t }: { stats: UserProfileWindowStats; t: ReturnTy
         <span className="text-right text-foreground">{formatTokens(tokens)}</span>
         <span>{t("Spend", { defaultValue: "Spend" })}</span>
         <span className="text-right text-foreground">{formatCents(stats.costCents)}</span>
-        <span>Created</span>
+        <span>{t("Created", { defaultValue: "Created" })}</span>
         <span className="text-right text-foreground">{formatNumber(stats.createdIssues)}</span>
-        <span>Open</span>
+        <span>{t("Open", { defaultValue: "Open" })}</span>
         <span className="text-right text-foreground">{formatNumber(stats.assignedOpenIssues)}</span>
       </div>
     </div>
@@ -139,7 +139,12 @@ function UsageChart({
               <div
                 className="w-full bg-foreground/80 transition-opacity group-hover:bg-foreground"
                 style={{ height: `${heightPct}%`, minHeight: tokens === 0 ? 1 : undefined }}
-                title={`${formatShortDate(point.date)}: ${formatTokens(tokens)} tokens, ${point.completedIssues} completed`}
+                title={t("userProfile.chartPointTitle", {
+                  date: formatShortDate(point.date),
+                  tokens: formatTokens(tokens),
+                  completed: point.completedIssues,
+                  defaultValue: "{{date}}: {{tokens}} tokens, {{completed}} completed",
+                })}
               />
               {completedPct > 0 ? (
                 <div
@@ -252,7 +257,7 @@ export function UserProfile() {
         cachedInputTokens: row.cachedInputTokens,
         outputTokens: row.outputTokens,
       })),
-    [data?.topAgents],
+    [data?.topAgents, t],
   );
 
   const providerUsageRows = useMemo<UsageRow[]>(
@@ -332,10 +337,40 @@ export function UserProfile() {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <HeroStat label="All-time tokens" value={formatTokens(allTimeTokens)} hint={formatCents(allTime?.costCents ?? 0) + " spent"} />
-          <HeroStat label="Completed" value={formatNumber(allTime?.completedIssues ?? 0)} hint={allTime ? `${completionRate(allTime)} rate` : undefined} />
-          <HeroStat label="Open assigned" value={formatNumber(allTime?.assignedOpenIssues ?? 0)} hint={`${formatNumber(allTime?.createdIssues ?? 0)} created`} />
-          <HeroStat label="7-day actions" value={formatNumber(last7?.activityCount ?? 0)} hint={`${formatNumber(last7?.commentCount ?? 0)} comments`} />
+          <HeroStat
+            label={t("userProfile.allTimeTokens", { defaultValue: "All-time tokens" })}
+            value={formatTokens(allTimeTokens)}
+            hint={t("userProfile.spentAmount", {
+              amount: formatCents(allTime?.costCents ?? 0),
+              defaultValue: "{{amount}} spent",
+            })}
+          />
+          <HeroStat
+            label={t("userProfile.completed", { defaultValue: "Completed" })}
+            value={formatNumber(allTime?.completedIssues ?? 0)}
+            hint={allTime
+              ? t("userProfile.completionRate", {
+                  rate: completionRate(allTime),
+                  defaultValue: "{{rate}} rate",
+                })
+              : undefined}
+          />
+          <HeroStat
+            label={t("userProfile.openAssigned", { defaultValue: "Open assigned" })}
+            value={formatNumber(allTime?.assignedOpenIssues ?? 0)}
+            hint={t("userProfile.createdCount", {
+              count: formatNumber(allTime?.createdIssues ?? 0),
+              defaultValue: "{{count}} created",
+            })}
+          />
+          <HeroStat
+            label={t("userProfile.sevenDayActions", { defaultValue: "7-day actions" })}
+            value={formatNumber(last7?.activityCount ?? 0)}
+            hint={t("userProfile.commentsCount", {
+              count: formatNumber(last7?.commentCount ?? 0),
+              defaultValue: "{{count}} comments",
+            })}
+          />
         </div>
       </section>
 

@@ -1,93 +1,53 @@
-import { existsSync } from "node:fs";
-import os from "node:os";
 import path from "node:path";
+import {
+  expandHomePrefix,
+  normalizeLegacyDesktopStoragePath,
+  resolveDefaultBackupDir as resolveSharedDefaultBackupDir,
+  resolveDefaultEmbeddedPostgresDir as resolveSharedDefaultEmbeddedPostgresDir,
+  resolveDefaultLogsDir as resolveSharedDefaultLogsDir,
+  resolveDefaultSecretsKeyFilePath as resolveSharedDefaultSecretsKeyFilePath,
+  resolveDefaultStorageDir as resolveSharedDefaultStorageDir,
+  resolveHomeAwarePath,
+  resolvePaperclipConfigPathForInstance,
+  resolvePaperclipHomeDir,
+  resolvePaperclipInstanceId,
+  resolvePaperclipInstanceRoot,
+} from "@penclipai/shared/home-paths";
 
-const DEFAULT_INSTANCE_ID = "default";
-const INSTANCE_ID_RE = /^[a-zA-Z0-9_-]+$/;
 const PATH_SEGMENT_RE = /^[a-zA-Z0-9_-]+$/;
 const FRIENDLY_PATH_SEGMENT_RE = /[^a-zA-Z0-9._-]+/g;
-const DESKTOP_TEMP_INSTANCE_PATH_RE = /paperclip-desktop-(?:smoke|acceptance)-/i;
-const LEGACY_WINDOWS_HOME_PREFIX_RE =
-  /^([A-Za-z]:[\\/].*?AppData[\\/]Roaming[\\/])(Paperclip CN|Paperclip)([\\/]|$)/i;
-const DESKTOP_USER_DATA_DIRNAME = "penclip";
 
-export function normalizeLegacyDesktopStoragePath(value: string): string {
-  return value.replace(
-    LEGACY_WINDOWS_HOME_PREFIX_RE,
-    (_, prefix: string, _name: string, suffix: string) => `${prefix}${DESKTOP_USER_DATA_DIRNAME}${suffix}`,
-  );
+export {
+  expandHomePrefix,
+  normalizeLegacyDesktopStoragePath,
+  resolveHomeAwarePath,
+  resolvePaperclipHomeDir,
+  resolvePaperclipInstanceId,
+  resolvePaperclipInstanceRoot,
+};
+
+export function resolveDefaultConfigPath(instanceId?: string): string {
+  return resolvePaperclipConfigPathForInstance({ instanceId });
 }
 
-function expandHomePrefix(value: string): string {
-  if (value === "~") return os.homedir();
-  if (value.startsWith("~/") || value.startsWith("~\\")) {
-    return path.resolve(os.homedir(), value.slice(2).replace(/[\\/]+/g, path.sep));
-  }
-  return normalizeLegacyDesktopStoragePath(value);
+export function resolveDefaultEmbeddedPostgresDir(instanceId?: string): string {
+  return resolveSharedDefaultEmbeddedPostgresDir({ instanceId });
 }
 
-function isPathInsideDir(candidatePath: string, parentDir: string): boolean {
-  const resolvedCandidate = path.resolve(candidatePath);
-  const resolvedParent = path.resolve(parentDir);
-  const relative = path.relative(resolvedParent, resolvedCandidate);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+export function resolveDefaultLogsDir(instanceId?: string): string {
+  return resolveSharedDefaultLogsDir({ instanceId });
 }
 
-function isFreshDesktopTempHome(candidate: string | undefined): boolean {
-  const desktopUserDataDir = process.env.PAPERCLIP_DESKTOP_USER_DATA_DIR?.trim();
-  const trimmed = candidate?.trim();
-  if (!desktopUserDataDir || !trimmed) return false;
-  return isPathInsideDir(trimmed, path.resolve(desktopUserDataDir));
+export function resolveDefaultSecretsKeyFilePath(instanceId?: string): string {
+  return resolveSharedDefaultSecretsKeyFilePath({ instanceId });
 }
 
-export function resolvePaperclipHomeDir(): string {
-  const envHome = process.env.PAPERCLIP_HOME?.trim();
-  if (envHome) {
-    const resolved = path.resolve(normalizeLegacyDesktopStoragePath(expandHomePrefix(envHome)));
-    if (
-      isFreshDesktopTempHome(resolved)
-      || !(DESKTOP_TEMP_INSTANCE_PATH_RE.test(resolved) && !existsSync(resolved))
-    ) {
-      return resolved;
-    }
-  }
-  return path.resolve(os.homedir(), ".paperclip");
+export function resolveDefaultStorageDir(instanceId?: string): string {
+  return resolveSharedDefaultStorageDir({ instanceId });
 }
 
-export function resolvePaperclipInstanceId(): string {
-  const raw = process.env.PAPERCLIP_INSTANCE_ID?.trim() || DEFAULT_INSTANCE_ID;
-  if (!INSTANCE_ID_RE.test(raw)) {
-    throw new Error(`Invalid PAPERCLIP_INSTANCE_ID '${raw}'.`);
-  }
-  return raw;
-}
-
-export function resolvePaperclipInstanceRoot(): string {
-  return path.resolve(resolvePaperclipHomeDir(), "instances", resolvePaperclipInstanceId());
-}
-
-export function resolveDefaultConfigPath(): string {
-  return path.resolve(resolvePaperclipInstanceRoot(), "config.json");
-}
-
-export function resolveDefaultEmbeddedPostgresDir(): string {
-  return path.resolve(resolvePaperclipInstanceRoot(), "db");
-}
-
-export function resolveDefaultLogsDir(): string {
-  return path.resolve(resolvePaperclipInstanceRoot(), "logs");
-}
-
-export function resolveDefaultSecretsKeyFilePath(): string {
-  return path.resolve(resolvePaperclipInstanceRoot(), "secrets", "master.key");
-}
-
-export function resolveDefaultStorageDir(): string {
-  return path.resolve(resolvePaperclipInstanceRoot(), "data", "storage");
-}
-
-export function resolveDefaultBackupDir(): string {
-  return path.resolve(resolvePaperclipInstanceRoot(), "data", "backups");
+export function resolveDefaultBackupDir(instanceId?: string): string {
+  return resolveSharedDefaultBackupDir({ instanceId });
 }
 
 export function resolveDefaultAgentWorkspaceDir(agentId: string): string {
@@ -124,8 +84,4 @@ export function resolveManagedProjectWorkspaceDir(input: {
     sanitizeFriendlyPathSegment(projectId, "project"),
     sanitizeFriendlyPathSegment(input.repoName, "_default"),
   );
-}
-
-export function resolveHomeAwarePath(value: string): string {
-  return path.resolve(normalizeLegacyDesktopStoragePath(expandHomePrefix(value)));
 }
