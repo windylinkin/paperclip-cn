@@ -12,7 +12,9 @@ From a Paperclip instance, install:
 @penclipai/plugin-daytona
 ```
 
-This fork package is staged for the `@penclipai` scope but is not enrolled in CI release publishing until the first npm bootstrap publish is completed.
+This fork package is published under the `@penclipai` scope and is enrolled in CI release publishing after its initial npm bootstrap publish.
+
+For development, source imports keep the upstream-compatible `@paperclipai/plugin-sdk` name. Publish packaging rewrites that local development link to an npm alias targeting `@penclipai/plugin-sdk`.
 
 The host plugin installer runs `npm install` into the managed plugin directory, so transitive dependencies such as `@daytonaio/sdk` are pulled in during installation.
 

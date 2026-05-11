@@ -104,3 +104,30 @@ test("buildPublishPackageJson promotes publishConfig and drops dev-only fields",
   assert.equal("scripts" in packageJson, false);
   assert.equal("devDependencies" in packageJson, false);
 });
+
+test("buildPublishPackageJson converts local compatibility aliases to npm aliases", () => {
+  const packageJson = buildPublishPackageJson(
+    {
+      pkg: {
+        name: "@penclipai/example",
+        version: "1.0.0",
+        dependencies: {
+          "@paperclipai/plugin-sdk": "link:../../packages/plugins/sdk",
+          "@paperclipai/shared": "workspace:@penclipai/shared@*",
+          "@daytonaio/sdk": "^0.171.0",
+        },
+      },
+    },
+    {
+      resolveDependencyVersion(name) {
+        return name === "@penclipai/plugin-sdk" ? "2026.428.0" : "2026.428.1";
+      },
+    },
+  );
+
+  assert.deepEqual(packageJson.dependencies, {
+    "@paperclipai/plugin-sdk": "npm:@penclipai/plugin-sdk@2026.428.0",
+    "@paperclipai/shared": "npm:@penclipai/shared@2026.428.1",
+    "@daytonaio/sdk": "^0.171.0",
+  });
+});
