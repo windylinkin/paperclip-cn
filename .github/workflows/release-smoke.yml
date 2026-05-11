@@ -64,25 +64,33 @@ jobs:
       - name: Launch Docker smoke harness
         run: |
           metadata_file="$RUNNER_TEMP/release-smoke.env"
+          set +e
           HOST_PORT="${{ inputs.host_port }}" \
           DATA_DIR="$RUNNER_TEMP/release-smoke-data" \
           PAPERCLIPAI_VERSION="${{ inputs.paperclip_version }}" \
           SMOKE_DETACH=true \
           SMOKE_METADATA_FILE="$metadata_file" \
           ./scripts/docker-onboard-smoke.sh
-          set -a
-          source "$metadata_file"
-          set +a
-          {
-            echo "SMOKE_BASE_URL=$SMOKE_BASE_URL"
-            echo "SMOKE_ADMIN_EMAIL=$SMOKE_ADMIN_EMAIL"
-            echo "SMOKE_ADMIN_PASSWORD=$SMOKE_ADMIN_PASSWORD"
-            echo "SMOKE_CONTAINER_NAME=$SMOKE_CONTAINER_NAME"
-            echo "SMOKE_DATA_DIR=$SMOKE_DATA_DIR"
-            echo "SMOKE_IMAGE_NAME=$SMOKE_IMAGE_NAME"
-            echo "SMOKE_PAPERCLIPAI_VERSION=$SMOKE_PAPERCLIPAI_VERSION"
-            echo "SMOKE_METADATA_FILE=$metadata_file"
-          } >> "$GITHUB_ENV"
+          smoke_status=$?
+          set -e
+          if [[ -f "$metadata_file" ]]; then
+            set -a
+            source "$metadata_file"
+            set +a
+            {
+              echo "SMOKE_BASE_URL=$SMOKE_BASE_URL"
+              echo "SMOKE_ADMIN_EMAIL=$SMOKE_ADMIN_EMAIL"
+              echo "SMOKE_ADMIN_PASSWORD=$SMOKE_ADMIN_PASSWORD"
+              echo "SMOKE_CONTAINER_NAME=$SMOKE_CONTAINER_NAME"
+              echo "SMOKE_DATA_DIR=$SMOKE_DATA_DIR"
+              echo "SMOKE_IMAGE_NAME=$SMOKE_IMAGE_NAME"
+              echo "SMOKE_PAPERCLIPAI_VERSION=$SMOKE_PAPERCLIPAI_VERSION"
+              echo "SMOKE_METADATA_FILE=$metadata_file"
+            } >> "$GITHUB_ENV"
+          else
+            echo "SMOKE_METADATA_FILE=$metadata_file" >> "$GITHUB_ENV"
+          fi
+          exit "$smoke_status"
 
       - name: Run release smoke Playwright suite
         env:
