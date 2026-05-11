@@ -27,7 +27,7 @@
   {
     "dir": "packages/adapters/cursor-cloud",
     "name": "@penclipai/adapter-cursor-cloud",
-    "publishFromCi": false
+    "publishFromCi": true
   },
   {
     "dir": "packages/adapters/cursor-local",
