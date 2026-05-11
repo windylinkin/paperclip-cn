@@ -215,7 +215,13 @@ function formatCommand(command, args) {
 }
 
 function ensureNpmAuth() {
-  const result = runNpm(["whoami"]);
+  const auth = npmPublishOptions();
+  let result;
+  try {
+    result = runNpm(["whoami"], auth.options);
+  } finally {
+    auth.cleanup();
+  }
   const stdout = result.stdout ?? "";
   const stderr = result.stderr ?? "";
 

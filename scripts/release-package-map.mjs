@@ -171,6 +171,34 @@ function sortTopologically(packages) {
   return ordered;
 }
 
+function findPublishedPackageBlockedDependencies(packages) {
+  const byName = new Map(packages.map((pkg) => [pkg.name, pkg]));
+  const problems = [];
+
+  for (const pkg of packages) {
+    if (!pkg.publishFromCi) continue;
+
+    const dependencySections = [
+      ["dependencies", pkg.pkg.dependencies ?? {}],
+      ["optionalDependencies", pkg.pkg.optionalDependencies ?? {}],
+      ["peerDependencies", pkg.pkg.peerDependencies ?? {}],
+    ];
+
+    for (const [section, deps] of dependencySections) {
+      for (const [depName, depRange] of Object.entries(deps)) {
+        if (typeof depRange !== "string" || !depRange.startsWith("workspace:")) continue;
+
+        const dep = byName.get(depName);
+        if (!dep || dep.publishFromCi) continue;
+
+        problems.push(`${pkg.name} ${section} includes ${dep.name}, but ${dep.dir} has publishFromCi=false`);
+      }
+    }
+  }
+
+  return problems;
+}
+
 function getReleasePackages() {
   return sortTopologically(buildReleasePackagePlan().filter((pkg) => pkg.publishFromCi));
 }
@@ -239,6 +267,13 @@ function checkConfiguration() {
     throw new Error(`no packages are enabled for CI publishing in ${manifestPath}`);
   }
 
+  const blockedDependencyProblems = findPublishedPackageBlockedDependencies(packages);
+  if (blockedDependencyProblems.length > 0) {
+    throw new Error(
+      `release package manifest validation failed:\n- ${blockedDependencyProblems.join("\n- ")}`,
+    );
+  }
+
   process.stdout.write(
     `Release package manifest OK: ${enabledCount} enabled for CI publish, ${disabledCount} disabled pending bootstrap.\n`,
   );
@@ -287,6 +322,7 @@ export {
   buildReleasePackagePlan,
   checkConfiguration,
   discoverPublicPackages,
+  findPublishedPackageBlockedDependencies,
   getReleasePackages,
   loadReleaseManifest,
 };
