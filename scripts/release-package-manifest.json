@@ -95,8 +95,18 @@
     "publishFromCi": true
   },
   {
+    "dir": "packages/plugins/sandbox-providers/cloudflare",
+    "name": "@penclipai/plugin-cloudflare-sandbox",
+    "publishFromCi": true
+  },
+  {
     "dir": "packages/plugins/sandbox-providers/daytona",
     "name": "@penclipai/plugin-daytona",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sandbox-providers/exe-dev",
+    "name": "@penclipai/plugin-exe-dev",
     "publishFromCi": true
   },
   {

@@ -241,7 +241,7 @@ describe("command managed runtime", () => {
       .toMatchObject({ code: "ENOENT" });
   }, 30_000);
 
-  it("runs setup commands from the existing sandbox cwd when staging into a nested remote workspace dir", async () => {
+  it("runs setup commands from a stable root cwd when staging into a nested remote workspace dir", async () => {
     const rootDir = await mkdtemp(path.join(os.tmpdir(), "paperclip-command-runtime-nested-"));
     cleanupDirs.push(rootDir);
 
@@ -337,7 +337,7 @@ describe("command managed runtime", () => {
     });
 
     expect(calls.length).toBeGreaterThan(0);
-    expect(calls.every((call) => call.cwd === remoteBaseDir)).toBe(true);
+    expect(calls.every((call) => call.cwd === "/")).toBe(true);
     await expect(readFile(path.join(remoteWorkspaceDir, "README.md"), "utf8")).resolves.toBe("local workspace\n");
   }, 30_000);
 });
