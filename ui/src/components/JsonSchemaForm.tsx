@@ -537,6 +537,7 @@ const SecretField = React.memo(({
   description,
   error,
   defaultValue,
+  maxLength,
 }: {
   value: unknown;
   onChange: (val: unknown) => void;
@@ -546,10 +547,11 @@ const SecretField = React.memo(({
   description?: string;
   error?: string;
   defaultValue?: unknown;
+  maxLength?: number;
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const { t } = useTranslation();
-
+  const isTextArea = maxLength != null && maxLength > TEXTAREA_THRESHOLD;
   return (
     <FieldWrapper
       label={label}
@@ -561,34 +563,86 @@ const SecretField = React.memo(({
       error={error}
       disabled={disabled}
     >
-      <div className="relative">
-        <Input
-          type={isVisible ? "text" : "password"}
-          value={String(value ?? "")}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={String(defaultValue ?? "")}
-          disabled={disabled}
-          className="pr-10"
-          aria-invalid={!!error}
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-          onClick={() => setIsVisible(!isVisible)}
-          disabled={disabled}
-        >
+      {isTextArea ? (
+        <div className="relative">
           {isVisible ? (
-            <EyeOff className="h-4 w-4 text-muted-foreground" />
+            <Textarea
+              value={String(value ?? "")}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={String(defaultValue ?? "")}
+              disabled={disabled}
+              className="min-h-[140px] pr-10 font-mono text-xs"
+              aria-invalid={!!error}
+            />
           ) : (
-            <Eye className="h-4 w-4 text-muted-foreground" />
+            <Textarea
+              // Render a placeholder summary instead of the secret content while
+              // hidden. This avoids exposing multi-line secrets (e.g. SSH
+              // private keys) on screen-shares; clicking the eye toggle reveals
+              // the editable textarea above.
+              value={
+                String(value ?? "").length === 0
+                  ? ""
+                  : t("jsonSchemaForm.secretHiddenSummary", {
+                    count: String(value ?? "").length,
+                    defaultValue: "Sensitive - {{count}} characters hidden. Click the eye to reveal.",
+                  })
+              }
+              readOnly
+              placeholder={String(defaultValue ?? "")}
+              disabled={disabled}
+              className="min-h-[140px] pr-10 font-mono text-xs italic text-muted-foreground"
+              aria-invalid={!!error}
+            />
           )}
-          <span className="sr-only">
-            {isVisible ? t("jsonSchemaForm.hideSecret") : t("jsonSchemaForm.showSecret")}
-          </span>
-        </Button>
-      </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-0 top-0 px-3 py-2 hover:bg-transparent"
+            onClick={() => setIsVisible(!isVisible)}
+            disabled={disabled}
+          >
+            {isVisible ? (
+              <EyeOff className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Eye className="h-4 w-4 text-muted-foreground" />
+            )}
+            <span className="sr-only">
+              {isVisible ? t("jsonSchemaForm.hideSecret") : t("jsonSchemaForm.showSecret")}
+            </span>
+          </Button>
+        </div>
+      ) : (
+        <div className="relative">
+          <Input
+            type={isVisible ? "text" : "password"}
+            value={String(value ?? "")}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={String(defaultValue ?? "")}
+            disabled={disabled}
+            className="pr-10"
+            aria-invalid={!!error}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+            onClick={() => setIsVisible(!isVisible)}
+            disabled={disabled}
+          >
+            {isVisible ? (
+              <EyeOff className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Eye className="h-4 w-4 text-muted-foreground" />
+            )}
+            <span className="sr-only">
+              {isVisible ? t("jsonSchemaForm.hideSecret") : t("jsonSchemaForm.showSecret")}
+            </span>
+          </Button>
+        </div>
+      )}
     </FieldWrapper>
   );
 });
@@ -954,6 +1008,7 @@ const FormField = React.memo(({
           description={description}
           error={error}
           defaultValue={propSchema.default}
+          maxLength={typeof propSchema.maxLength === "number" ? propSchema.maxLength : undefined}
         />
       );
 

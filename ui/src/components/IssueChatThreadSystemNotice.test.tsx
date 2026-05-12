@@ -645,7 +645,7 @@ describe("IssueChatThread system notice routing", () => {
     expect(status?.textContent).not.toContain("You");
   });
 
-  it("falls back to Paperclip in the system notice header when run agent is unknown to agentMap", () => {
+  it("falls back to the CN brand in the system notice header when run agent is unknown to agentMap", () => {
     const comment: IssueChatComment = {
       id: "comment-system-unknown-agent",
       companyId: "company-1",
@@ -671,7 +671,7 @@ describe("IssueChatThread system notice routing", () => {
     const status = container.querySelector('[role="status"]');
     const sourceLink = status?.querySelector('a[href^="/agents/"]') as HTMLAnchorElement | null;
     expect(sourceLink?.getAttribute("href")).toBe("/agents/agent-unknown/runs/run-xyz");
-    expect(sourceLink?.textContent).toBe("Paperclip");
+    expect(sourceLink?.textContent).toBe("Paperclip CN");
   });
 
   it("keeps agent-authored comments as assistant bubbles even when presentation requests system_notice", () => {

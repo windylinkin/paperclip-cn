@@ -15,6 +15,8 @@ const DEFAULT_BRIDGE_MAX_QUEUE_DEPTH = 64;
 const DEFAULT_BRIDGE_MAX_BODY_BYTES = 256 * 1024;
 const REMOTE_WRITE_BASE64_CHUNK_SIZE = 32 * 1024;
 const SANDBOX_CALLBACK_BRIDGE_ENTRYPOINT = "paperclip-bridge-server.mjs";
+const SANDBOX_EXEC_CHANNEL_ENV = "PAPERCLIP_SANDBOX_EXEC_CHANNEL";
+const SANDBOX_EXEC_CHANNEL_BRIDGE = "bridge";
 
 export const DEFAULT_SANDBOX_CALLBACK_BRIDGE_MAX_BODY_BYTES = DEFAULT_BRIDGE_MAX_BODY_BYTES;
 
@@ -210,6 +212,9 @@ async function runShell(
     command: shellCommand,
     args: shellCommandArgs(script),
     cwd,
+    env: {
+      [SANDBOX_EXEC_CHANNEL_ENV]: SANDBOX_EXEC_CHANNEL_BRIDGE,
+    },
     stdin,
     timeoutMs,
   });
@@ -949,6 +954,9 @@ export async function startSandboxCallbackBridgeServer(input: {
       ].join("\n"),
     ),
     cwd: input.remoteCwd,
+    env: {
+      [SANDBOX_EXEC_CHANNEL_ENV]: SANDBOX_EXEC_CHANNEL_BRIDGE,
+    },
     timeoutMs,
   });
   requireSuccessfulResult("start sandbox callback bridge", startResult);
@@ -1024,6 +1032,9 @@ export async function startSandboxCallbackBridgeServer(input: {
           ].join("\n"),
         ),
         cwd: input.remoteCwd,
+        env: {
+          [SANDBOX_EXEC_CHANNEL_ENV]: SANDBOX_EXEC_CHANNEL_BRIDGE,
+        },
         timeoutMs,
       });
       if (stopResult.timedOut) {
