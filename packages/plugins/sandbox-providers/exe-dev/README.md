@@ -1,6 +1,6 @@
 # `@penclipai/plugin-exe-dev`
 
-Published exe.dev sandbox provider plugin for Paperclip.
+exe.dev sandbox provider plugin for Paperclip.
 
 This package lives in the Paperclip monorepo, but it is intentionally excluded from the root `pnpm` workspace and shaped to publish and install like a standalone npm package. That lets operators install it from the Plugins page by package name without introducing root lockfile churn.
 
@@ -12,7 +12,7 @@ From a Paperclip instance, install:
 @penclipai/plugin-exe-dev
 ```
 
-This fork package is published under the `@penclipai` scope. Source imports keep the upstream-compatible `@paperclipai/plugin-sdk` name, and publish packaging rewrites that local development link to an npm alias targeting `@penclipai/plugin-sdk`.
+This fork package uses the `@penclipai` scope. Source imports keep the upstream-compatible `@paperclipai/plugin-sdk` name, and publish packaging rewrites that local development link to an npm alias targeting `@penclipai/plugin-sdk`. CI release publishing should stay disabled until the initial npm bootstrap publish is complete.
 
 ## Configuration
 
