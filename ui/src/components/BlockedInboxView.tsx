@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import type { Issue } from "@penclipai/shared";
 import { issuesApi } from "../api/issues";
@@ -8,6 +9,7 @@ import { cn } from "../lib/utils";
 import { applyIssueFilters, type IssueFilterState, type IssueFilterWorkspaceContext } from "../lib/issue-filters";
 import {
   blockedRowMatchesSearch,
+  blockedVariantLabel,
   buildBlockedInboxRows,
   formatStoppedAge,
   groupBlockedInboxRows,
@@ -15,6 +17,8 @@ import {
   type BlockedInboxGroupBy,
   type BlockedInboxIssueRow,
   type BlockedInboxSort,
+  type BlockedReasonVariant,
+  type StoppedAgeLabels,
 } from "../lib/blockedInbox";
 import { BlockedReasonChip } from "./BlockedReasonChip";
 import { IssueGroupHeader } from "./IssueGroupHeader";
@@ -42,6 +46,55 @@ interface BlockedInboxViewProps {
 
 const BLOCKED_LIST_LIMIT = 200;
 
+function blockedVariantTranslationKey(variant: BlockedReasonVariant): string {
+  return `blockedInbox.reasonVariant.${variant}`;
+}
+
+function blockedSeverityTranslationKey(severity: string): string {
+  return `blockedInbox.severity.${severity}`;
+}
+
+function formatBlockedVariantLabel(
+  variant: BlockedReasonVariant,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  return t(blockedVariantTranslationKey(variant), {
+    defaultValue: blockedVariantLabel(variant),
+  });
+}
+
+function stoppedAgeLabels(t: (key: string, options?: Record<string, unknown>) => string): StoppedAgeLabels {
+  return {
+    stopped: t("blockedInbox.stoppedAge.stopped", { defaultValue: "stopped" }),
+    justNow: t("blockedInbox.stoppedAge.justNow", { defaultValue: "stopped just now" }),
+    minutes: (count) =>
+      t("blockedInbox.stoppedAge.minutes", {
+        count,
+        defaultValue: `stopped ${count}m`,
+      }),
+    hours: (count) =>
+      t("blockedInbox.stoppedAge.hours", {
+        count,
+        defaultValue: `stopped ${count}h`,
+      }),
+    days: (count) =>
+      t("blockedInbox.stoppedAge.days", {
+        count,
+        defaultValue: `stopped ${count}d`,
+      }),
+    weeks: (count) =>
+      t("blockedInbox.stoppedAge.weeks", {
+        count,
+        defaultValue: `stopped ${count}w`,
+      }),
+    months: (count) =>
+      t("blockedInbox.stoppedAge.months", {
+        count,
+        defaultValue: `stopped ${count}mo`,
+      }),
+  };
+}
+
 export function BlockedInboxView({
   companyId,
   searchQuery,
@@ -58,6 +111,7 @@ export function BlockedInboxView({
   showIdentifierColumn,
   showUpdatedColumn,
 }: BlockedInboxViewProps) {
+  const { t } = useTranslation();
   const [collapsedVariants, setCollapsedVariants] = useState<Set<string>>(() => new Set());
 
   const {
@@ -146,9 +200,14 @@ export function BlockedInboxView({
         <div className="flex items-start gap-2">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium">Couldn't load the Blocked tab.</p>
+            <p className="text-sm font-medium">
+              {t("blockedInbox.errorTitle", { defaultValue: "Couldn't load the Blocked tab." })}
+            </p>
             <p className="text-xs opacity-80">
-              Other Inbox tabs still work. {message}
+              {t("blockedInbox.errorBody", {
+                defaultValue: "Other Inbox tabs still work. {{message}}",
+                message,
+              })}
             </p>
           </div>
           <Button
@@ -159,7 +218,9 @@ export function BlockedInboxView({
             onClick={() => void refetch()}
             disabled={isFetching}
           >
-            {isFetching ? "Trying…" : "Try again"}
+            {isFetching
+              ? t("blockedInbox.trying", { defaultValue: "Trying..." })
+              : t("Try again", { defaultValue: "Try again" })}
           </Button>
         </div>
       </div>
@@ -176,9 +237,13 @@ export function BlockedInboxView({
           <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
         </span>
         <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">No work is stopped.</p>
+          <p className="text-sm font-medium text-foreground">
+            {t("blockedInbox.emptyTitle", { defaultValue: "No work is stopped." })}
+          </p>
           <p className="text-xs text-muted-foreground">
-            Issues that need a decision, recovery, or external action will appear here.
+            {t("blockedInbox.emptyBody", {
+              defaultValue: "Issues that need a decision, recovery, or external action will appear here.",
+            })}
           </p>
         </div>
       </div>
@@ -192,7 +257,7 @@ export function BlockedInboxView({
           data-testid="blocked-inbox-no-search-results"
           className="rounded-lg border border-border/70 bg-card/40 px-4 py-6 text-center text-sm text-muted-foreground"
         >
-          No stopped items match your search.
+          {t("blockedInbox.noSearchResults", { defaultValue: "No stopped items match your search." })}
         </div>
       </div>
     );
@@ -221,7 +286,7 @@ export function BlockedInboxView({
               <div key={group.variant} data-testid={`blocked-inbox-group-${group.variant}`}>
                 <div className="px-3 sm:px-4">
                   <IssueGroupHeader
-                    label={`${group.label} · ${group.rows.length}`}
+                    label={`${formatBlockedVariantLabel(group.variant, t)} · ${group.rows.length}`}
                     collapsible
                     collapsed={isCollapsed}
                     onToggle={() => toggleVariant(group.variant)}
@@ -287,8 +352,18 @@ function BlockedInboxRow({
   showIdentifierColumn,
   showUpdatedColumn,
 }: BlockedInboxRowProps) {
+  const { t } = useTranslation();
   const { label: ownerName, isAgent } = resolveOwnerName(row, agentNameById, userLabelById);
-  const stoppedAge = formatStoppedAge(row.attention.stoppedSinceAt);
+  const stoppedAge = formatStoppedAge(row.attention.stoppedSinceAt, Date.now(), stoppedAgeLabels(t));
+  const reasonLabel = formatBlockedVariantLabel(row.variant, t);
+  const severityLabel = t(blockedSeverityTranslationKey(row.attention.severity), {
+    defaultValue: row.attention.severity,
+  });
+  const reasonAriaLabel = t("blockedInbox.reasonAria", {
+    defaultValue: "Reason: {{reason}}, severity {{severity}}",
+    reason: reasonLabel,
+    severity: severityLabel,
+  });
 
   const desktopTrailing = (
     <span className="flex shrink-0 items-center gap-3 text-xs">
@@ -299,6 +374,9 @@ function BlockedInboxRow({
         <BlockedReasonChip
           reason={row.attention.reason}
           severity={row.attention.severity}
+          label={reasonLabel}
+          severityLabel={severityLabel}
+          ariaLabel={reasonAriaLabel}
           className="max-w-full"
         />
       </span>
@@ -358,6 +436,9 @@ function BlockedInboxRow({
         <BlockedReasonChip
           reason={row.attention.reason}
           severity={row.attention.severity}
+          label={reasonLabel}
+          severityLabel={severityLabel}
+          ariaLabel={reasonAriaLabel}
           className="ml-2 max-w-[12rem] align-middle sm:hidden"
         />
       }

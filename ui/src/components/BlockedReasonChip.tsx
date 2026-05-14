@@ -12,6 +12,9 @@ import type { IssueBlockedInboxReason } from "@penclipai/shared";
 interface BlockedReasonChipProps {
   reason: IssueBlockedInboxReason;
   severity: IssueBlockedInboxSeverity;
+  label?: string;
+  severityLabel?: string;
+  ariaLabel?: string;
   compact?: boolean;
   className?: string;
 }
@@ -50,11 +53,15 @@ const SEVERITY_DOT: Partial<Record<IssueBlockedInboxSeverity, string>> = {
 export function BlockedReasonChip({
   reason,
   severity,
+  label,
+  severityLabel,
+  ariaLabel,
   compact = false,
   className,
 }: BlockedReasonChipProps) {
   const variant = blockedReasonVariant(reason);
-  const label = blockedVariantLabel(variant);
+  const displayLabel = label ?? blockedVariantLabel(variant);
+  const displaySeverity = severityLabel ?? severity;
   const Icon = VARIANT_ICONS[variant];
   const dotClass = SEVERITY_DOT[severity];
   return (
@@ -62,7 +69,7 @@ export function BlockedReasonChip({
       data-testid="blocked-reason-chip"
       data-variant={variant}
       data-severity={severity}
-      aria-label={`Reason: ${label}, severity ${severity}`}
+      aria-label={ariaLabel ?? `Reason: ${displayLabel}, severity ${displaySeverity}`}
       className={cn(
         "inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-medium leading-tight sm:text-[11px]",
         VARIANT_STYLES[variant],
@@ -76,7 +83,7 @@ export function BlockedReasonChip({
         />
       ) : null}
       {compact ? null : <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />}
-      <span className="truncate">{label}</span>
+      <span className="truncate">{displayLabel}</span>
     </span>
   );
 }

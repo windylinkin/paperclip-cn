@@ -86,6 +86,26 @@ export function blockedSeverityRank(severity: IssueBlockedInboxSeverity): number
   return SEVERITY_RANK[severity] ?? 9;
 }
 
+export interface StoppedAgeLabels {
+  stopped: string;
+  justNow: string;
+  minutes: (count: number) => string;
+  hours: (count: number) => string;
+  days: (count: number) => string;
+  weeks: (count: number) => string;
+  months: (count: number) => string;
+}
+
+const EN_STOPPED_AGE_LABELS: StoppedAgeLabels = {
+  stopped: "stopped",
+  justNow: "stopped just now",
+  minutes: (count) => `stopped ${count}m`,
+  hours: (count) => `stopped ${count}h`,
+  days: (count) => `stopped ${count}d`,
+  weeks: (count) => `stopped ${count}w`,
+  months: (count) => `stopped ${count}mo`,
+};
+
 export function compareBlockedAttention(
   a: IssueBlockedInboxAttention,
   b: IssueBlockedInboxAttention,
@@ -248,28 +268,32 @@ export function blockedBadgeTone(rows: readonly BlockedInboxIssueRow[]): Blocked
   return "muted";
 }
 
-export function formatStoppedAge(stoppedSinceAt: string | null, now: number = Date.now()): string {
-  if (!stoppedSinceAt) return "stopped";
+export function formatStoppedAge(
+  stoppedSinceAt: string | null,
+  now: number = Date.now(),
+  labels: StoppedAgeLabels = EN_STOPPED_AGE_LABELS,
+): string {
+  if (!stoppedSinceAt) return labels.stopped;
   const then = new Date(stoppedSinceAt).getTime();
-  if (!Number.isFinite(then)) return "stopped";
+  if (!Number.isFinite(then)) return labels.stopped;
   const seconds = Math.max(0, Math.round((now - then) / 1000));
-  if (seconds < 60) return "stopped just now";
+  if (seconds < 60) return labels.justNow;
   if (seconds < 3600) {
     const m = Math.floor(seconds / 60);
-    return `stopped ${m}m`;
+    return labels.minutes(m);
   }
   if (seconds < 86_400) {
     const h = Math.floor(seconds / 3600);
-    return `stopped ${h}h`;
+    return labels.hours(h);
   }
   if (seconds < 86_400 * 7) {
     const d = Math.floor(seconds / 86_400);
-    return `stopped ${d}d`;
+    return labels.days(d);
   }
   if (seconds < 86_400 * 30) {
     const w = Math.floor(seconds / (86_400 * 7));
-    return `stopped ${w}w`;
+    return labels.weeks(w);
   }
   const mo = Math.floor(seconds / (86_400 * 30));
-  return `stopped ${mo}mo`;
+  return labels.months(mo);
 }
