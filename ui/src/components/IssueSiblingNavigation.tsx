@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Issue } from "@penclipai/shared";
 import type { IssueSiblingNavigation as IssueSiblingNavigationState } from "@/lib/issue-detail-subissues";
 import { createIssueDetailPath, withIssueDetailHeaderSeed } from "@/lib/issueDetailBreadcrumb";
@@ -12,11 +13,13 @@ type IssueSiblingNavigationProps = {
 };
 
 export function IssueSiblingNavigation({ navigation, linkState }: IssueSiblingNavigationProps) {
+  const { t } = useTranslation(undefined, { useSuspense: false });
+
   if (!navigation) return null;
 
   return (
     <nav
-      aria-label="Sub-issue navigation"
+      aria-label={t("issueSiblingNavigation.ariaLabel", { defaultValue: "Sub-issue navigation" })}
       className="mt-4 flex flex-col gap-3 sm:mt-6 sm:grid sm:grid-cols-2"
     >
       {navigation.previous ? (
@@ -45,11 +48,24 @@ function SiblingLink({
   linkState?: unknown;
   className?: string;
 }) {
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const issuePathId = issue.identifier ?? issue.id;
-  const label = direction === "previous" ? "Previous" : "Next";
-  const ariaDirection = direction === "previous" ? "Previous sub-issue" : "Next sub-issue";
+  const label = direction === "previous"
+    ? t("issueSiblingNavigation.previous", { defaultValue: "Previous" })
+    : t("issueSiblingNavigation.next", { defaultValue: "Next" });
   const identifier = issue.identifier ?? issue.id.slice(0, 8);
   const Icon = direction === "previous" ? ChevronLeft : ChevronRight;
+  const ariaLabel = direction === "previous"
+    ? t("issueSiblingNavigation.previousAria", {
+      defaultValue: "Previous sub-issue: {{identifier}} - {{title}}",
+      identifier,
+      title: issue.title,
+    })
+    : t("issueSiblingNavigation.nextAria", {
+      defaultValue: "Next sub-issue: {{identifier}} - {{title}}",
+      identifier,
+      title: issue.title,
+    });
 
   return (
     <Link
@@ -58,7 +74,7 @@ function SiblingLink({
       issuePrefetch={issue}
       issueQuicklookSide="top"
       issueQuicklookAlign={direction === "previous" ? "start" : "end"}
-      aria-label={`${ariaDirection}: ${identifier} - ${issue.title}`}
+      aria-label={ariaLabel}
       className={cn(
         "group min-w-0 rounded-lg border border-border bg-card px-3 py-2.5 text-left no-underline transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring",
         direction === "next" && "sm:text-right",

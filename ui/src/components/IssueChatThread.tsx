@@ -4670,10 +4670,12 @@ export function IssueChatThread({
                   {legacyRecoverySourceIssue ? (
                     <SystemNotice
                       tone="info"
-                      label="Legacy recovery issue"
+                      label={t("issueChat.legacyRecoveryIssue.label", { defaultValue: "Legacy recovery issue" })}
                       body={
                         <span>
-                          Legacy recovery issue. Newer recovery actions live on the source issue
+                          {t("issueChat.legacyRecoveryIssue.body", {
+                            defaultValue: "Legacy recovery issue. Newer recovery actions live on the source issue",
+                          })}
                           {legacyRecoverySourceIssue.identifier ? (
                             <>
                               {" — "}

@@ -4415,6 +4415,13 @@
   "blockedInbox.stoppedAge.days": "已停滞 {{count}} 天",
   "blockedInbox.stoppedAge.weeks": "已停滞 {{count}} 周",
   "blockedInbox.stoppedAge.months": "已停滞 {{count}} 个月",
+  "issueChat.legacyRecoveryIssue.label": "旧版恢复任务",
+  "issueChat.legacyRecoveryIssue.body": "这是旧版恢复任务。新版恢复操作位于源任务",
+  "issueSiblingNavigation.ariaLabel": "子任务导航",
+  "issueSiblingNavigation.previous": "上一个",
+  "issueSiblingNavigation.next": "下一个",
+  "issueSiblingNavigation.previousAria": "上一个子任务：{{identifier}} - {{title}}",
+  "issueSiblingNavigation.nextAria": "下一个子任务：{{identifier}} - {{title}}",
   "foldCurtain.showMore": "显示更多",
   "foldCurtain.showLess": "收起"
 }

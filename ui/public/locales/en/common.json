@@ -4386,6 +4386,13 @@
   "blockedInbox.stoppedAge.days": "stopped {{count}}d",
   "blockedInbox.stoppedAge.weeks": "stopped {{count}}w",
   "blockedInbox.stoppedAge.months": "stopped {{count}}mo",
+  "issueChat.legacyRecoveryIssue.label": "Legacy recovery issue",
+  "issueChat.legacyRecoveryIssue.body": "Legacy recovery issue. Newer recovery actions live on the source issue",
+  "issueSiblingNavigation.ariaLabel": "Sub-issue navigation",
+  "issueSiblingNavigation.previous": "Previous",
+  "issueSiblingNavigation.next": "Next",
+  "issueSiblingNavigation.previousAria": "Previous sub-issue: {{identifier}} - {{title}}",
+  "issueSiblingNavigation.nextAria": "Next sub-issue: {{identifier}} - {{title}}",
   "foldCurtain.showMore": "Show more",
   "foldCurtain.showLess": "Show less"
 }
