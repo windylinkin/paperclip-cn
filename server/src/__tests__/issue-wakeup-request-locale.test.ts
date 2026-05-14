@@ -39,6 +39,7 @@ vi.mock("../services/index.js", () => ({
     })),
   }),
   issueApprovalService: () => ({}),
+  issueRecoveryActionService: () => ({}),
   issueReferenceService: () => ({
     emptySummary: vi.fn(() => ({ outbound: [], inbound: [] })),
     listIssueReferenceSummary: vi.fn(async () => ({ outbound: [], inbound: [] })),

@@ -76,6 +76,8 @@ export const IssueLinkQuicklook = React.forwardRef<
     issuePathId: string;
     disableIssueQuicklook?: boolean;
     issuePrefetch?: Issue | null;
+    issueQuicklookSide?: React.ComponentProps<typeof PopoverContent>["side"];
+    issueQuicklookAlign?: React.ComponentProps<typeof PopoverContent>["align"];
   }
 >(function IssueLinkQuicklookImpl(
   {
@@ -86,10 +88,13 @@ export const IssueLinkQuicklook = React.forwardRef<
     state,
     disableIssueQuicklook = false,
     issuePrefetch = null,
+    issueQuicklookSide = "top",
+    issueQuicklookAlign = "start",
     onClick,
     onClickCapture,
     onMouseEnter,
     onFocus,
+    onBlur,
     onTouchStart,
     ...props
   },
@@ -121,7 +126,13 @@ export const IssueLinkQuicklook = React.forwardRef<
       }}
       onFocus={(event) => {
         handlePrefetch();
+        setOpen(true);
         onFocus?.(event);
+      }}
+      onBlur={(event) => {
+        // Let clicks inside the portaled quicklook content finish before closing.
+        setTimeout(() => setOpen(false), 0);
+        onBlur?.(event);
       }}
       onTouchStart={(event) => {
         handlePrefetch();
@@ -159,8 +170,8 @@ export const IssueLinkQuicklook = React.forwardRef<
       </PopoverTrigger>
       <PopoverContent
         className="w-72 p-3"
-        side="top"
-        align="start"
+        side={issueQuicklookSide}
+        align={issueQuicklookAlign}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
         onOpenAutoFocus={(event) => event.preventDefault()}

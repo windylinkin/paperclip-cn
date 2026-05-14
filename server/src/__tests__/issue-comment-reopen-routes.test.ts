@@ -67,6 +67,9 @@ const mockIssueThreadInteractionService = vi.hoisted(() => ({
   expireRequestConfirmationsSupersededByComment: vi.fn(async () => []),
   expireStaleRequestConfirmationsForIssueDocument: vi.fn(async () => []),
 }));
+const mockIssueRecoveryActionService = vi.hoisted(() => ({
+  getActiveForIssue: vi.fn(async () => null),
+}));
 const mockIssueTreeControlService = vi.hoisted(() => ({
   getActivePauseHoldGate: vi.fn(async () => null),
 }));
@@ -119,6 +122,7 @@ function registerModuleMocks() {
     heartbeatService: () => mockHeartbeatService,
     instanceSettingsService: () => mockInstanceSettingsService,
     issueApprovalService: () => ({}),
+    issueRecoveryActionService: () => mockIssueRecoveryActionService,
     issueReferenceService: () => ({
       deleteDocumentSource: async () => undefined,
       diffIssueReferenceSummary: () => ({
@@ -191,6 +195,7 @@ vi.mock("../services/index.js", () => ({
   heartbeatService: () => mockHeartbeatService,
   instanceSettingsService: () => mockInstanceSettingsService,
   issueApprovalService: () => ({}),
+  issueRecoveryActionService: () => mockIssueRecoveryActionService,
   issueReferenceService: () => ({
     deleteDocumentSource: async () => undefined,
     diffIssueReferenceSummary: () => ({
@@ -322,6 +327,7 @@ describe.sequential("issue comment reopen routes", () => {
     mockRoutineService.syncRunStatusForIssue.mockReset();
     mockIssueThreadInteractionService.expireRequestConfirmationsSupersededByComment.mockReset();
     mockIssueThreadInteractionService.expireStaleRequestConfirmationsForIssueDocument.mockReset();
+    mockIssueRecoveryActionService.getActiveForIssue.mockReset();
     mockIssueTreeControlService.getActivePauseHoldGate.mockReset();
     mockTxInsertValues.mockReset();
     mockTxInsert.mockReset();
@@ -360,6 +366,7 @@ describe.sequential("issue comment reopen routes", () => {
     mockRoutineService.syncRunStatusForIssue.mockResolvedValue(undefined);
     mockIssueThreadInteractionService.expireRequestConfirmationsSupersededByComment.mockResolvedValue([]);
     mockIssueThreadInteractionService.expireStaleRequestConfirmationsForIssueDocument.mockResolvedValue([]);
+    mockIssueRecoveryActionService.getActiveForIssue.mockResolvedValue(null);
     mockIssueTreeControlService.getActivePauseHoldGate.mockResolvedValue(null);
     mockIssueService.addComment.mockResolvedValue({
       id: "comment-1",

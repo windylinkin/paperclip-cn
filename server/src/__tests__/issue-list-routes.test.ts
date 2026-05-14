@@ -44,6 +44,9 @@ vi.mock("../services/index.js", () => ({
     listCompanyIds: vi.fn(async () => ["company-1"]),
   }),
   issueApprovalService: () => ({}),
+  issueRecoveryActionService: () => ({
+    listActiveForIssues: vi.fn(async () => new Map()),
+  }),
   issueReferenceService: () => ({
     emptySummary: vi.fn(() => ({ outbound: [], inbound: [] })),
     listIssueReferenceSummary: vi.fn(async () => ({ outbound: [], inbound: [] })),
