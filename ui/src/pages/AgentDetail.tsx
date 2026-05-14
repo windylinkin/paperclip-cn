@@ -47,6 +47,7 @@ import { formatCents, formatDate, formatTime, relativeTime, formatTokens, visibl
 import { cn } from "../lib/utils";
 import { translateInstant } from "../i18n";
 import { translateRuntimeErrorMessage } from "../lib/error-i18n";
+import { translateSystemGeneratedText } from "../lib/system-generated-message-i18n";
 import { displaySeededName } from "../lib/seeded-display";
 import { describeRunRetryState } from "../lib/runRetryState";
 import { Button } from "@/components/ui/button";
@@ -3240,6 +3241,7 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
     },
   });
   const canResumeLostRun = run.errorCode === "process_lost" && run.status === "failed";
+  const runErrorText = translateRuntimeErrorMessage(t, run.error) ?? run.error;
   const resumePayload = useMemo(() => {
     const payload: Record<string, unknown> = {
       resumeFromRunId: run.id,
@@ -3472,7 +3474,7 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
             )}
             {run.error && (
               <div className="text-xs">
-                <span className="text-red-600 dark:text-red-400">{run.error}</span>
+                <span className="text-red-600 dark:text-red-400">{runErrorText}</span>
                 {run.errorCode && <span className="text-muted-foreground ml-1">({run.errorCode})</span>}
               </div>
             )}
@@ -4064,6 +4066,7 @@ function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType: strin
     queryKey: queryKeys.instance.generalSettings,
     queryFn: () => instanceSettingsApi.getGeneral(),
   }).data?.censorUsernameInLogs === true;
+  const runErrorText = translateRuntimeErrorMessage(t, run.error) ?? run.error;
 
   const adapterInvokePayload = useMemo(() => {
     const evt = events.find((e) => e.eventType === "adapter.invoke");
@@ -4215,7 +4218,7 @@ function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType: strin
           {run.error && (
             <div className="text-xs text-red-600 dark:text-red-200">
               <span className="text-red-700 dark:text-red-300">{t("Error:", { defaultValue: "Error:" })} </span>
-              {redactPathText(run.error, censorUsernameInLogs)}
+              {redactPathText(runErrorText ?? "", censorUsernameInLogs)}
             </div>
           )}
           {run.stderrExcerpt && run.stderrExcerpt.trim() && (
@@ -4270,7 +4273,7 @@ function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType: strin
                   </span>
                   <span className={cn("break-all", color)}>
                     {evt.message
-                      ? redactPathText(evt.message, censorUsernameInLogs)
+                      ? redactPathText(translateSystemGeneratedText(t, evt.message), censorUsernameInLogs)
                       : evt.payload
                         ? JSON.stringify(redactPathValue(evt.payload, censorUsernameInLogs))
                         : ""}

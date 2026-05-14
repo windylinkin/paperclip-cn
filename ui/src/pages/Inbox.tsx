@@ -14,6 +14,12 @@ import { agentsApi } from "../api/agents";
 import { heartbeatsApi } from "../api/heartbeats";
 import { instanceSettingsApi } from "../api/instanceSettings";
 import { projectsApi } from "../api/projects";
+import {
+  BLOCKED_GROUP_OPTIONS,
+  BLOCKED_SORT_OPTIONS,
+  type BlockedInboxGroupBy,
+  type BlockedInboxSort,
+} from "../lib/blockedInbox";
 import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useGeneralSettings } from "../context/GeneralSettingsContext";
@@ -55,6 +61,7 @@ import {
 } from "../components/IssueColumns";
 import { IssueFiltersPopover } from "../components/IssueFiltersPopover";
 import { IssueRow } from "../components/IssueRow";
+import { BlockedInboxView } from "../components/BlockedInboxView";
 import { SwipeToArchive } from "../components/SwipeToArchive";
 
 import { StatusIcon } from "../components/StatusIcon";
@@ -86,6 +93,7 @@ import {
   AlertTriangle,
   Check,
   ChevronRight,
+  ArrowUpDown,
   Layers,
   Plus,
   XCircle,
@@ -697,6 +705,8 @@ export function Inbox() {
     () => loadInboxFilterPreferences(selectedCompanyId),
   );
   const [groupBy, setGroupBy] = useState<InboxWorkItemGroupBy>(() => loadInboxWorkItemGroupBy());
+  const [blockedGroupBy, setBlockedGroupBy] = useState<BlockedInboxGroupBy>("none");
+  const [blockedSortBy, setBlockedSortBy] = useState<BlockedInboxSort>("most_recent");
   const [visibleIssueColumns, setVisibleIssueColumns] = useState<InboxIssueColumn[]>(loadInboxIssueColumns);
   const { dismissed: dismissedAlerts, dismiss: dismissAlert } = useDismissedInboxAlerts();
   const { dismissedAtByKey, dismiss: dismissInboxItem } = useInboxDismissals(selectedCompanyId);
@@ -705,7 +715,11 @@ export function Inbox() {
 
   const pathSegment = location.pathname.split("/").pop() ?? "mine";
   const tab: InboxTab =
-    pathSegment === "mine" || pathSegment === "recent" || pathSegment === "all" || pathSegment === "unread"
+    pathSegment === "mine"
+    || pathSegment === "recent"
+    || pathSegment === "all"
+    || pathSegment === "unread"
+    || pathSegment === "blocked"
       ? pathSegment
       : "mine";
   const canArchiveFromTab = isMineInboxTab(tab);
@@ -847,7 +861,6 @@ export function Inbox() {
     queryFn: () => heartbeatsApi.list(selectedCompanyId!, undefined, INBOX_HEARTBEAT_RUN_LIMIT),
     enabled: !!selectedCompanyId,
   });
-
   const { data: liveRuns } = useQuery({
     queryKey: queryKeys.liveRuns(selectedCompanyId!),
     queryFn: () => heartbeatsApi.liveRunsForCompany(selectedCompanyId!),
@@ -1925,6 +1938,7 @@ export function Inbox() {
     .map((issue) => issue.id);
   const canMarkAllRead = unreadIssueIds.length > 0;
   const activeIssueFilterCount = countActiveIssueFilters(issueFilters, true);
+  const showGeneralIssueToolbarControls = tab !== "blocked";
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -1969,8 +1983,9 @@ export function Inbox() {
                 value: "recent",
                 label: t("Recent", { defaultValue: "Recent" }),
               },
-               { value: "unread", label: t("Unread", { defaultValue: "Unread" }) },
-               { value: "all", label: t("All", { defaultValue: "All" }) },
+              { value: "unread", label: t("Unread", { defaultValue: "Unread" }) },
+              { value: "blocked", label: t("Blocked", { defaultValue: "Blocked" }) },
+              { value: "all", label: t("All", { defaultValue: "All" }) },
             ]}
           />
         </Tabs>
@@ -2004,119 +2019,210 @@ export function Inbox() {
               data-page-search-target="true"
             />
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className={cn("hidden h-8 w-8 shrink-0 sm:inline-flex", nestingEnabled && "bg-accent")}
-            onClick={toggleNesting}
-            title={nestingEnabled
-              ? t("Disable parent-child nesting", { defaultValue: "Disable parent-child nesting" })
-              : t("Enable parent-child nesting", { defaultValue: "Enable parent-child nesting" })}
-          >
-            <ListTree className="h-3.5 w-3.5" />
-          </Button>
-          <IssueFiltersPopover
-            state={issueFilters}
-            onChange={updateIssueFilters}
-            activeFilterCount={activeIssueFilterCount}
-            agents={agents}
-            creators={creatorOptions}
-            projects={projects?.map((project) => ({ id: project.id, name: project.name }))}
-            labels={labels?.map((label) => ({ id: label.id, name: label.name, color: label.color }))}
-            currentUserId={currentUserId}
-            enableRoutineVisibilityFilter
-            buttonVariant="outline"
-            iconOnly
-            workspaces={isolatedWorkspacesEnabled ? executionWorkspaces.filter((w) => w.mode === "isolated_workspace").map((w) => ({ id: w.id, name: w.name })) : undefined}
-          />
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className={cn("h-8 w-8 shrink-0", groupBy !== "none" && "bg-accent")}
-                title={t("issuesList.group", { defaultValue: "Group" })}
-              >
-                <Layers className="h-3.5 w-3.5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-40 p-2">
-              <div className="space-y-0.5">
-                {([
-                  ["none", t("None", { defaultValue: "None" })],
-                  ["type", t("Type", { defaultValue: "Type" })],
-                  ["assignee", t("Assignee", { defaultValue: "Assignee" })],
-                  ["project", t("Project", { defaultValue: "Project" })],
-                  ...(isolatedWorkspacesEnabled ? ([["workspace", t("Workspace", { defaultValue: "Workspace" })]] as const) : []),
-                ] as const).map(([value, label]) => (
-                  <button
-                    key={value}
+          {tab === "blocked" ? (
+            <>
+              <IssueFiltersPopover
+                state={issueFilters}
+                onChange={updateIssueFilters}
+                activeFilterCount={activeIssueFilterCount}
+                agents={agents}
+                creators={creatorOptions}
+                projects={projects?.map((project) => ({ id: project.id, name: project.name }))}
+                labels={labels?.map((label) => ({ id: label.id, name: label.name, color: label.color }))}
+                currentUserId={currentUserId}
+                enableRoutineVisibilityFilter
+                buttonVariant="outline"
+                iconOnly
+                workspaces={isolatedWorkspacesEnabled ? executionWorkspaces.filter((w) => w.mode === "isolated_workspace").map((w) => ({ id: w.id, name: w.name })) : undefined}
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
                     type="button"
-                    className={cn(
-                      "flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm",
-                      groupBy === value ? "bg-accent/50 text-foreground" : "text-muted-foreground hover:bg-accent/50",
-                    )}
-                    onClick={() => updateGroupBy(value)}
+                    variant="outline"
+                    size="icon"
+                    className={cn("h-8 w-8 shrink-0", blockedGroupBy !== "none" && "bg-accent")}
+                    title={t("issuesList.group", { defaultValue: "Group" })}
                   >
-                    <span>{label}</span>
-                    {groupBy === value ? <Check className="h-3.5 w-3.5" /> : null}
-                  </button>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-          <IssueColumnPicker
-            availableColumns={availableIssueColumns}
-            visibleColumnSet={visibleIssueColumnSet}
-            onToggleColumn={toggleIssueColumn}
-            onResetColumns={() => setIssueColumns(DEFAULT_INBOX_ISSUE_COLUMNS)}
-            title={t("Choose which inbox columns stay visible", { defaultValue: "Choose which inbox columns stay visible" })}
-            iconOnly
-          />
-          {canMarkAllRead && (
+                    <Layers className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-44 p-0">
+                  <div className="space-y-0.5 p-2">
+                    {BLOCKED_GROUP_OPTIONS.map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm",
+                          blockedGroupBy === value ? "bg-accent/50 text-foreground" : "text-muted-foreground hover:bg-accent/50",
+                        )}
+                        onClick={() => setBlockedGroupBy(value)}
+                      >
+                        <span>{t(label, { defaultValue: label })}</span>
+                        {blockedGroupBy === value ? <Check className="h-3.5 w-3.5" /> : null}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <IssueColumnPicker
+                availableColumns={availableIssueColumns}
+                visibleColumnSet={visibleIssueColumnSet}
+                onToggleColumn={toggleIssueColumn}
+                onResetColumns={() => setIssueColumns(DEFAULT_INBOX_ISSUE_COLUMNS)}
+                title={t("Choose which inbox columns stay visible", { defaultValue: "Choose which inbox columns stay visible" })}
+                iconOnly
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    title={t("Sort", { defaultValue: "Sort" })}
+                  >
+                    <ArrowUpDown className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-48 p-0">
+                  <div className="space-y-0.5 p-2">
+                    {BLOCKED_SORT_OPTIONS.map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm",
+                          blockedSortBy === value ? "bg-accent/50 text-foreground" : "text-muted-foreground hover:bg-accent/50",
+                        )}
+                        onClick={() => setBlockedSortBy(value)}
+                      >
+                        <span>{t(label, { defaultValue: label })}</span>
+                        {blockedSortBy === value ? <Check className="h-3.5 w-3.5" /> : null}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </>
+          ) : showGeneralIssueToolbarControls ? (
             <>
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
-                className="h-8 shrink-0"
-                onClick={() => setShowMarkAllReadConfirm(true)}
-                disabled={markAllReadMutation.isPending}
+                size="icon"
+                className={cn("hidden h-8 w-8 shrink-0 sm:inline-flex", nestingEnabled && "bg-accent")}
+                onClick={toggleNesting}
+                title={nestingEnabled
+                  ? t("Disable parent-child nesting", { defaultValue: "Disable parent-child nesting" })
+                  : t("Enable parent-child nesting", { defaultValue: "Enable parent-child nesting" })}
               >
-                {markAllReadMutation.isPending
-                  ? t("Marking…", { defaultValue: "Marking…" })
-                  : t("Mark all as read", { defaultValue: "Mark all as read" })}
+                <ListTree className="h-3.5 w-3.5" />
               </Button>
-              <Dialog open={showMarkAllReadConfirm} onOpenChange={setShowMarkAllReadConfirm}>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>{t("Mark all as read?", { defaultValue: "Mark all as read?" })}</DialogTitle>
-                    <DialogDescription>
-                      {t("inbox.markAllReadDescription", {
-                        count: unreadIssueIds.length,
-                        defaultValue: "This will mark {{count}} unread item(s) as read.",
-                      })}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowMarkAllReadConfirm(false)}>
-                      {t("Cancel", { defaultValue: "Cancel" })}
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setShowMarkAllReadConfirm(false);
-                        markAllReadMutation.mutate(unreadIssueIds);
-                      }}
-                    >
-                      {t("Mark all as read", { defaultValue: "Mark all as read" })}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <IssueFiltersPopover
+                state={issueFilters}
+                onChange={updateIssueFilters}
+                activeFilterCount={activeIssueFilterCount}
+                agents={agents}
+                creators={creatorOptions}
+                projects={projects?.map((project) => ({ id: project.id, name: project.name }))}
+                labels={labels?.map((label) => ({ id: label.id, name: label.name, color: label.color }))}
+                currentUserId={currentUserId}
+                enableRoutineVisibilityFilter
+                buttonVariant="outline"
+                iconOnly
+                workspaces={isolatedWorkspacesEnabled ? executionWorkspaces.filter((w) => w.mode === "isolated_workspace").map((w) => ({ id: w.id, name: w.name })) : undefined}
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className={cn("h-8 w-8 shrink-0", groupBy !== "none" && "bg-accent")}
+                    title={t("issuesList.group", { defaultValue: "Group" })}
+                  >
+                    <Layers className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-40 p-2">
+                  <div className="space-y-0.5">
+                    {([
+                      ["none", t("None", { defaultValue: "None" })],
+                      ["type", t("Type", { defaultValue: "Type" })],
+                      ["assignee", t("Assignee", { defaultValue: "Assignee" })],
+                      ["project", t("Project", { defaultValue: "Project" })],
+                      ...(isolatedWorkspacesEnabled ? ([["workspace", t("Workspace", { defaultValue: "Workspace" })]] as const) : []),
+                    ] as const).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm",
+                          groupBy === value ? "bg-accent/50 text-foreground" : "text-muted-foreground hover:bg-accent/50",
+                        )}
+                        onClick={() => updateGroupBy(value)}
+                      >
+                        <span>{label}</span>
+                        {groupBy === value ? <Check className="h-3.5 w-3.5" /> : null}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <IssueColumnPicker
+                availableColumns={availableIssueColumns}
+                visibleColumnSet={visibleIssueColumnSet}
+                onToggleColumn={toggleIssueColumn}
+                onResetColumns={() => setIssueColumns(DEFAULT_INBOX_ISSUE_COLUMNS)}
+                title={t("Choose which inbox columns stay visible", { defaultValue: "Choose which inbox columns stay visible" })}
+                iconOnly
+              />
+              {canMarkAllRead && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 shrink-0"
+                    onClick={() => setShowMarkAllReadConfirm(true)}
+                    disabled={markAllReadMutation.isPending}
+                  >
+                    {markAllReadMutation.isPending
+                      ? t("Marking...", { defaultValue: "Marking..." })
+                      : t("Mark all as read", { defaultValue: "Mark all as read" })}
+                  </Button>
+                  <Dialog open={showMarkAllReadConfirm} onOpenChange={setShowMarkAllReadConfirm}>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>{t("Mark all as read?", { defaultValue: "Mark all as read?" })}</DialogTitle>
+                        <DialogDescription>
+                          {t("inbox.markAllReadDescription", {
+                            count: unreadIssueIds.length,
+                            defaultValue: "This will mark {{count}} unread item(s) as read.",
+                          })}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowMarkAllReadConfirm(false)}>
+                          {t("Cancel", { defaultValue: "Cancel" })}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setShowMarkAllReadConfirm(false);
+                            markAllReadMutation.mutate(unreadIssueIds);
+                          }}
+                        >
+                          {t("Mark all as read", { defaultValue: "Mark all as read" })}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </>
+              )}
             </>
-          )}
+          ) : null}
         </div>
         </div>
       </div>
@@ -2161,11 +2267,30 @@ export function Inbox() {
       {approvalsError && <p className="text-sm text-destructive">{approvalsError.message}</p>}
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}
 
-      {!allLoaded && visibleSections.length === 0 && (
+      {tab === "blocked" ? (
+        <BlockedInboxView
+          companyId={selectedCompanyId!}
+          searchQuery={searchQuery}
+          agentNameById={agentById}
+          userLabelById={companyUserLabelMap}
+          issueLinkState={issueLinkState}
+          groupBy={blockedGroupBy}
+          sortBy={blockedSortBy}
+          issueFilters={issueFilters}
+          currentUserId={currentUserId}
+          liveIssueIds={liveIssueIds}
+          workspaceFilterContext={inboxWorkspaceGrouping}
+          showStatusColumn={visibleIssueColumnSet.has("status") && availableIssueColumnSet.has("status")}
+          showIdentifierColumn={visibleIssueColumnSet.has("id") && availableIssueColumnSet.has("id")}
+          showUpdatedColumn={visibleIssueColumnSet.has("updated") && availableIssueColumnSet.has("updated")}
+        />
+      ) : null}
+
+      {tab !== "blocked" && !allLoaded && visibleSections.length === 0 && (
         <PageSkeleton variant="inbox" />
       )}
 
-      {allLoaded && visibleSections.length === 0 && (
+      {tab !== "blocked" && allLoaded && visibleSections.length === 0 && (
         <EmptyState
           icon={searchQuery.trim() ? Search : InboxIcon}
           message={
@@ -2182,7 +2307,7 @@ export function Inbox() {
         />
       )}
 
-      {showWorkItemsSection && (
+      {tab !== "blocked" && showWorkItemsSection && (
         <>
           {showSeparatorBefore("work_items") && <Separator />}
           <div>
