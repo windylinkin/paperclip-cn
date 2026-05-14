@@ -20,6 +20,8 @@ interface InlineEditorProps {
   nullable?: boolean;
   /** When true, long display-mode markdown is clipped with a fade curtain that expands on click. */
   foldable?: boolean;
+  /** Transforms read-only preview text without changing the saved/editable value. */
+  previewTransform?: (value: string) => string;
 }
 
 /** Shared padding so display and edit modes occupy the exact same box. */
@@ -56,6 +58,7 @@ export function InlineEditor({
   onDropFile,
   mentions,
   foldable = false,
+  previewTransform,
 }: InlineEditorProps) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
@@ -257,6 +260,7 @@ export function InlineEditor({
 
   if (multiline) {
     const previewValue = autosaveState === "saved" || autosaveState === "idle" ? draft : value;
+    const renderedPreviewValue = previewTransform ? previewTransform(previewValue) : previewValue;
     const hasValue = Boolean(previewValue.trim());
     const showEditor = multilineEditing || multilineFocused || !hasValue;
 
@@ -291,12 +295,12 @@ export function InlineEditor({
           {foldable ? (
             <FoldCurtain>
               <MarkdownBody className={cn("paperclip-edit-in-place-content", className)}>
-                {previewValue}
+                {renderedPreviewValue}
               </MarkdownBody>
             </FoldCurtain>
           ) : (
             <MarkdownBody className={cn("paperclip-edit-in-place-content", className)}>
-              {previewValue}
+              {renderedPreviewValue}
             </MarkdownBody>
           )}
         </div>

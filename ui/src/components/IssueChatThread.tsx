@@ -118,6 +118,7 @@ import {
   buildSystemNoticeProps,
   mapCommentMetadataToSystemNoticeSections,
 } from "../lib/system-notice-comment";
+import { translateSystemGeneratedMarkdownText } from "../lib/system-generated-message-i18n";
 import type {
   IssueCommentMetadata,
   IssueCommentPresentation,
@@ -2612,7 +2613,10 @@ function SystemNoticeCommentRow({
     .filter((p): p is { type: "text"; text: string } => p.type === "text")
     .map((p) => p.text)
     .join("\n\n");
-  const visibleBodyText = translateKnownSystemNoticeText(bodyText, t);
+  const visibleBodyText = translateKnownSystemNoticeText(
+    translateSystemGeneratedMarkdownText(bodyText, t),
+    t,
+  );
   const staleSuccessfulRunHandoffNotice = isStaleSuccessfulRunHandoffNotice({
     bodyText,
     issueStatus,

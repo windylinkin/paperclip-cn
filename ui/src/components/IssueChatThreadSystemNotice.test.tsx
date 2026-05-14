@@ -22,6 +22,15 @@ const { i18nLanguageRef, i18nTranslations } = vi.hoisted(() => ({
       "systemNotice.metadata.runContext": "运行上下文",
       "systemNotice.metadata.reason": "原因",
       "systemNotice.metadata.causeCode": "原因代码",
+      "systemGenerated.outputSilence.criticalThresholdCrossed": "已超过关键输出静默阈值。",
+      "systemGenerated.outputSilence.detectedOnActiveRun": "Paperclip 检测到此任务的活动运行已达到关键输出静默。",
+      "systemGenerated.outputSilence.blocksSourceIssue": "这会通过明确的复查任务阻塞来源任务，但不会取消仍在活动的进程。",
+      "systemGenerated.label.run": "运行",
+      "systemGenerated.label.silentFor": "静默时长",
+      "systemGenerated.label.lastOutputAt": "最后输出时间",
+      "systemGenerated.label.evaluationIssue": "评估任务",
+      "systemGenerated.duration.hours": "{{count}} 小时",
+      "systemGenerated.value.noneRecorded": "未记录",
       "systemNotice.successfulRunHandoff.missingDispositionTitle": "缺少任务处置状态",
       "systemNotice.successfulRunHandoff.missingDispositionBody": "需要先为这个任务记录处置状态，才能继续推进。",
       "systemNotice.successfulRunHandoff.recoveryBlockedTitle": "缺少处置状态的恢复已阻塞",
@@ -300,6 +309,50 @@ describe("IssueChatThread system notice routing", () => {
     expect(container.textContent).not.toContain("successful_run_missing_state");
     expect(container.textContent).not.toContain("one corrective handoff wake queued");
     expect(container.textContent).not.toContain("in_review with an owner");
+  });
+
+  it("localizes output-silence system notice bodies in Chinese", () => {
+    i18nLanguageRef.current = "zh-CN";
+    const comment: IssueChatComment = {
+      id: "comment-output-silence-zh",
+      companyId: "company-1",
+      issueId: "issue-1",
+      authorType: "system",
+      authorAgentId: null,
+      authorUserId: null,
+      body: [
+        "Critical output silence threshold crossed.",
+        "",
+        "- Run: `da7d59e5-7eec-4c3b-8019-b15157d3fcf1`",
+        "- Silent for: 4h",
+        "- Last output at: none recorded",
+        "- Evaluation issue: BIG-52",
+        "",
+        "Paperclip detected critical output silence on this issue's active run.",
+        "This blocks the source issue on the explicit review task without cancelling the active process.",
+      ].join("\n"),
+      presentation: {
+        kind: "system_notice",
+        tone: "info",
+        title: null,
+        detailsDefaultOpen: false,
+      },
+      metadata: null,
+      ...baseTimestamps,
+    };
+
+    renderThread([comment]);
+
+    expect(container.textContent).toContain("已超过关键输出静默阈值。");
+    expect(container.textContent).toContain("运行：`da7d59e5-7eec-4c3b-8019-b15157d3fcf1`");
+    expect(container.textContent).toContain("静默时长：4 小时");
+    expect(container.textContent).toContain("最后输出时间：未记录");
+    expect(container.textContent).toContain("评估任务：BIG-52");
+    expect(container.textContent).toContain("Paperclip 检测到此任务的活动运行已达到关键输出静默。");
+    expect(container.textContent).toContain("这会通过明确的复查任务阻塞来源任务");
+    expect(container.textContent).not.toContain("Critical output silence threshold crossed");
+    expect(container.textContent).not.toContain("Silent for");
+    expect(container.textContent).not.toContain("Last output at");
   });
 
   it("localizes recovery-blocked system notice metadata values in Chinese", () => {

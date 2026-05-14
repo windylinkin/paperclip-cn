@@ -23,6 +23,7 @@ import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { assigneeValueFromSelection, suggestedCommentAssigneeValue } from "../lib/assignees";
 import { buildCompanyUserInlineOptions, buildCompanyUserLabelMap, buildCompanyUserProfileMap, buildMarkdownMentionOptions } from "../lib/company-members";
 import { extractIssueTimelineEvents } from "../lib/issue-timeline-events";
+import { translateSystemGeneratedMarkdownText } from "../lib/system-generated-message-i18n";
 import { queryKeys } from "../lib/queryKeys";
 import { keepPreviousDataForSameQueryTail } from "../lib/query-placeholder-data";
 import { collectLiveIssueIds } from "../lib/liveIssueIds";
@@ -3048,6 +3049,10 @@ export function IssueDetail() {
 
   const backHref = sourceBreadcrumb.href ?? "/inbox";
   const showInboxToolbar = isMobile && isFromInbox;
+  const issueDescriptionPreviewTransform = useCallback(
+    (value: string) => translateSystemGeneratedMarkdownText(value, t),
+    [t],
+  );
   const archivePending = archiveFromInbox.isPending;
   const issueHidden = !!issue?.hiddenAt;
   const canArchiveFromInbox = isFromInbox && !!issue?.id && !issueHidden;
@@ -3824,6 +3829,7 @@ export function IssueDetail() {
           placeholder={t("Add a description...", { defaultValue: "Add a description..." })}
           multiline
           foldable
+          previewTransform={issueDescriptionPreviewTransform}
           mentions={mentionOptions}
           imageUploadHandler={async (file) => {
             const attachment = await uploadAttachment.mutateAsync(file);

@@ -1,10 +1,14 @@
 import type { TFunction } from "i18next";
+import { translateSystemGeneratedText } from "./system-generated-message-i18n";
 
 export function translateRuntimeErrorMessage(
   t: TFunction,
   message: string | null | undefined,
 ): string | null | undefined {
   if (!message) return message;
+
+  const systemGenerated = translateSystemGeneratedText(t, message);
+  if (systemGenerated !== message) return systemGenerated;
 
   if (message === "Process adapter missing command") {
     return t("Process adapter missing command", {
