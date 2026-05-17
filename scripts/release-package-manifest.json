@@ -40,6 +40,11 @@
     "publishFromCi": true
   },
   {
+    "dir": "packages/adapters/grok-local",
+    "name": "@penclipai/adapter-grok-local",
+    "publishFromCi": true
+  },
+  {
     "dir": "packages/adapters/opencode-local",
     "name": "@penclipai/adapter-opencode-local",
     "publishFromCi": true
