@@ -244,6 +244,20 @@ function applyJsxRuntimeKey(
   return { ...(props ?? {}), key };
 }
 
+function splitStaticJsxChildren(
+  props: Record<string, unknown> | null | undefined,
+): { props: Record<string, unknown>; children: unknown[] } {
+  const normalized = props ?? {};
+  const children = normalized.children;
+  if (!Array.isArray(children)) {
+    return { props: normalized, children: [] };
+  }
+
+  const propsWithoutChildren = { ...normalized };
+  delete propsWithoutChildren.children;
+  return { props: propsWithoutChildren, children };
+}
+
 function getShimBlobUrl(specifier: "react" | "react-dom" | "react-dom/client" | "react/jsx-runtime" | "sdk-ui"): string {
   if (shimBlobUrls[specifier]) return shimBlobUrls[specifier];
 
@@ -267,8 +281,12 @@ function getShimBlobUrl(specifier: "react" | "react-dom" | "react-dom/client" | 
       source = `
         const R = globalThis.__paperclipPluginBridge__?.react;
         const withKey = ${applyJsxRuntimeKey.toString()};
+        const splitStaticChildren = ${splitStaticJsxChildren.toString()};
         export const jsx = (type, props, key) => R.createElement(type, withKey(props, key));
-        export const jsxs = (type, props, key) => R.createElement(type, withKey(props, key));
+        export const jsxs = (type, props, key) => {
+          const split = splitStaticChildren(props);
+          return R.createElement(type, withKey(split.props, key), ...split.children);
+        };
         export const Fragment = R.Fragment;
       `;
       break;
