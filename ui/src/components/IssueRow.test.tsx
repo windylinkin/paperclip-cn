@@ -248,6 +248,7 @@ describe("IssueRow", () => {
     const link = container.querySelector("[data-inbox-issue-link]") as HTMLAnchorElement | null;
     expect(link).not.toBeNull();
     expect(link?.textContent).toContain("Planning");
+    expect(link?.textContent?.match(/Planning/g)).toHaveLength(1);
 
     act(() => {
       root.unmount();

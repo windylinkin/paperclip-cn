@@ -19,6 +19,8 @@ import { queryKeys } from "../lib/queryKeys";
 import { keepPreviousDataForSameQueryTail } from "../lib/query-placeholder-data";
 import { describeRunRetryState } from "../lib/runRetryState";
 import { translateStatusLabel } from "../lib/i18n-labels";
+import { readSourceResolvedWatchdogFold } from "../lib/source-resolved-watchdog-fold";
+import { SourceResolvedFoldBadge } from "./SourceResolvedFoldBadge";
 
 type IssueRunLedgerProps = {
   issueId: string;
@@ -895,6 +897,7 @@ export function IssueRunLedgerContent({
             const outputSilence = outputSilenceCopy
               ? translateOutputSilenceCopy(outputSilenceCopy, t)
               : null;
+            const sourceResolvedFold = readSourceResolvedWatchdogFold(run.resultJson);
             return (
               <article
                 key={`run:${run.runId}`}
@@ -985,6 +988,7 @@ export function IssueRunLedgerContent({
                       </span>
                     );
                   })()}
+                  {sourceResolvedFold ? <SourceResolvedFoldBadge /> : null}
                   <span className="ml-auto shrink-0">{relativeTime(item.timestamp)}</span>
                 </div>
 
