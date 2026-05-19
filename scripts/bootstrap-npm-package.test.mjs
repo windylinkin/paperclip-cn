@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildPublishPackageJson, parseArgs, resolveTargetPackage } from "./bootstrap-npm-package.mjs";
+import {
+  buildPackageForBootstrap,
+  buildPublishPackageJson,
+  parseArgs,
+  resolveTargetPackage,
+} from "./bootstrap-npm-package.mjs";
 
 test("parseArgs recognizes publish and skip-build flags", () => {
   assert.deepEqual(parseArgs(["@penclipai/adapter-acpx-local", "--publish", "--skip-build"]), {
@@ -130,4 +135,62 @@ test("buildPublishPackageJson converts local compatibility aliases to npm aliase
     "@paperclipai/shared": "npm:@penclipai/shared@2026.428.1",
     "@daytonaio/sdk": "^0.171.0",
   });
+});
+
+test("resolveTargetPackage includes the workspace diff plugin bootstrap package", () => {
+  const pkg = resolveTargetPackage("@penclipai/plugin-workspace-diff");
+
+  assert.equal(pkg.dir, "packages/plugins/plugin-workspace-diff");
+});
+
+test("buildPackageForBootstrap runs build from the target package directory", () => {
+  const calls = [];
+  const built = buildPackageForBootstrap(
+    {
+      name: "@penclipai/plugin-modal",
+      dir: "packages/plugins/sandbox-providers/modal",
+      pkg: {
+        scripts: {
+          build: "tsc",
+        },
+      },
+    },
+    {
+      resolvePnpmInvocation() {
+        return { command: "node", argsPrefix: ["pnpm.cjs"] };
+      },
+      runChecked(command, args) {
+        calls.push({ command, args });
+      },
+    },
+  );
+
+  assert.equal(built, true);
+  assert.deepEqual(calls, [
+    {
+      command: "node",
+      args: ["pnpm.cjs", "-C", "packages/plugins/sandbox-providers/modal", "run", "build"],
+    },
+  ]);
+});
+
+test("buildPackageForBootstrap skips packages without a build script", () => {
+  const calls = [];
+  const built = buildPackageForBootstrap(
+    {
+      name: "@penclipai/no-build",
+      dir: "packages/no-build",
+      pkg: {
+        scripts: {},
+      },
+    },
+    {
+      runChecked(command, args) {
+        calls.push({ command, args });
+      },
+    },
+  );
+
+  assert.equal(built, false);
+  assert.deepEqual(calls, []);
 });

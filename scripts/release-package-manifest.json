@@ -80,6 +80,11 @@
     "publishFromCi": true
   },
   {
+    "dir": "packages/plugins/plugin-workspace-diff",
+    "name": "@penclipai/plugin-workspace-diff",
+    "publishFromCi": false
+  },
+  {
     "dir": "server",
     "name": "@penclipai/server",
     "publishFromCi": true
@@ -117,6 +122,11 @@
   {
     "dir": "packages/plugins/sandbox-providers/e2b",
     "name": "@penclipai/plugin-e2b",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sandbox-providers/modal",
+    "name": "@penclipai/plugin-modal",
     "publishFromCi": true
   },
   {
