@@ -902,7 +902,7 @@ export function AgentDetail() {
   const duplicateAgent = useMutation({
     mutationFn: async () => {
       if (!agent?.id || !resolvedCompanyId) {
-        throw new Error("Agent is not ready to duplicate");
+        throw new Error(t("Agent is not ready to duplicate", { defaultValue: "Agent is not ready to duplicate" }));
       }
 
       const instructionsBundle = await loadDuplicateInstructionsBundle(agent.id, resolvedCompanyId);
@@ -924,17 +924,17 @@ export function AgentDetail() {
         await queryClient.invalidateQueries({ queryKey: queryKeys.agents.list(resolvedCompanyId) });
       }
       pushToast({
-        title: "Agent duplicated",
+        title: t("Agent duplicated", { defaultValue: "Agent duplicated" }),
         body: createdAgent.name,
         tone: "success",
       });
       navigate(`/agents/${agentRouteRef(createdAgent)}/dashboard`);
     },
     onError: (err) => {
-      const message = err instanceof Error ? err.message : "Failed to duplicate agent";
+      const message = err instanceof Error ? err.message : t("Failed to duplicate agent", { defaultValue: "Failed to duplicate agent" });
       setActionError(message);
       pushToast({
-        title: "Could not duplicate agent",
+        title: t("Could not duplicate agent", { defaultValue: "Could not duplicate agent" }),
         body: message,
         tone: "error",
       });
@@ -944,11 +944,17 @@ export function AgentDetail() {
   const handleDuplicateAgent = useCallback(() => {
     if (!agent || duplicateAgent.isPending) return;
     const nextName = duplicateAgentName(agent.name);
-    const confirmed = window.confirm(`Duplicate ${agent.name} as ${nextName}?`);
+    const confirmed = window.confirm(
+      t("Duplicate {{name}} as {{nextName}}?", {
+        defaultValue: "Duplicate {{name}} as {{nextName}}?",
+        name: agent.name,
+        nextName,
+      }),
+    );
     setMoreOpen(false);
     if (!confirmed) return;
     duplicateAgent.mutate();
-  }, [agent, duplicateAgent]);
+  }, [agent, duplicateAgent, t]);
 
   const budgetMutation = useMutation({
     mutationFn: (amount: number) =>
@@ -1156,7 +1162,7 @@ export function AgentDetail() {
                 ) : (
                   <Copy className="h-3 w-3" />
                 )}
-                Duplicate Agent
+                {t("Duplicate Agent", { defaultValue: "Duplicate Agent" })}
               </button>
               <button
                 className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50"
