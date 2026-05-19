@@ -143,7 +143,7 @@ describe("SidebarAccountMenu", () => {
     expect(document.body.textContent).toContain("中文");
     expect(document.body.textContent).toContain("English");
     expect(document.body.querySelector('[data-slot="popover-content"]')?.className)
-      .toContain("w-[var(--radix-popover-trigger-width)]");
+      .toContain("w-[277px]");
 
     await act(async () => {
       root.unmount();

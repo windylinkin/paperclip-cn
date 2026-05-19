@@ -29,6 +29,7 @@ import {
   type ReactNode,
   type ComponentType,
 } from "react";
+import * as ReactModule from "react";
 import { useQuery } from "@tanstack/react-query";
 import type {
   PluginLauncherDeclaration,
@@ -244,31 +245,56 @@ function applyJsxRuntimeKey(
   return { ...(props ?? {}), key };
 }
 
+function splitStaticJsxChildren(
+  props: Record<string, unknown> | null | undefined,
+): { props: Record<string, unknown>; children: unknown[] } {
+  const normalized = props ?? {};
+  const children = normalized.children;
+  if (!Array.isArray(children)) {
+    return { props: normalized, children: [] };
+  }
+
+  const propsWithoutChildren = { ...normalized };
+  delete propsWithoutChildren.children;
+  return { props: propsWithoutChildren, children };
+}
+
+function createReactShimSource(reactModule: object): string {
+  const exportNames = Object.keys(reactModule)
+    .filter((name) => name !== "default" && /^[A-Za-z_$][\w$]*$/.test(name))
+    .sort();
+  const namedExports = exportNames
+    .map((name) => `        export const ${name} = R.${name};`)
+    .join("\n");
+
+  return `
+        const R = globalThis.__paperclipPluginBridge__?.react;
+        if (!R) {
+          throw new Error("Paperclip plugin React runtime is not initialized.");
+        }
+        export default R;
+${namedExports}
+      `;
+}
+
 function getShimBlobUrl(specifier: "react" | "react-dom" | "react-dom/client" | "react/jsx-runtime" | "sdk-ui"): string {
   if (shimBlobUrls[specifier]) return shimBlobUrls[specifier];
 
   let source: string;
   switch (specifier) {
     case "react":
-      source = `
-        const R = globalThis.__paperclipPluginBridge__?.react;
-        export default R;
-        const { useState, useEffect, useCallback, useMemo, useRef, useContext,
-          createContext, createElement, Fragment, Component, forwardRef,
-          memo, lazy, Suspense, StrictMode, cloneElement, Children,
-          isValidElement, createRef } = R;
-        export { useState, useEffect, useCallback, useMemo, useRef, useContext,
-          createContext, createElement, Fragment, Component, forwardRef,
-          memo, lazy, Suspense, StrictMode, cloneElement, Children,
-          isValidElement, createRef };
-      `;
+      source = createReactShimSource(ReactModule);
       break;
     case "react/jsx-runtime":
       source = `
         const R = globalThis.__paperclipPluginBridge__?.react;
         const withKey = ${applyJsxRuntimeKey.toString()};
+        const splitStaticChildren = ${splitStaticJsxChildren.toString()};
         export const jsx = (type, props, key) => R.createElement(type, withKey(props, key));
-        export const jsxs = (type, props, key) => R.createElement(type, withKey(props, key));
+        export const jsxs = (type, props, key) => {
+          const split = splitStaticChildren(props);
+          return R.createElement(type, withKey(split.props, key), ...split.children);
+        };
         export const Fragment = R.Fragment;
       `;
       break;
@@ -904,4 +930,5 @@ export function _resetPluginModuleLoader(): void {
 }
 
 export const _applyJsxRuntimeKeyForTests = applyJsxRuntimeKey;
+export const _createReactShimSourceForTests = createReactShimSource;
 export const _rewriteBareSpecifiersForTests = rewriteBareSpecifiers;

@@ -40,6 +40,11 @@
     "publishFromCi": true
   },
   {
+    "dir": "packages/adapters/grok-local",
+    "name": "@penclipai/adapter-grok-local",
+    "publishFromCi": true
+  },
+  {
     "dir": "packages/adapters/opencode-local",
     "name": "@penclipai/adapter-opencode-local",
     "publishFromCi": true
@@ -73,6 +78,11 @@
     "dir": "packages/plugins/sdk",
     "name": "@penclipai/plugin-sdk",
     "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/plugin-workspace-diff",
+    "name": "@penclipai/plugin-workspace-diff",
+    "publishFromCi": false
   },
   {
     "dir": "server",
@@ -112,6 +122,11 @@
   {
     "dir": "packages/plugins/sandbox-providers/e2b",
     "name": "@penclipai/plugin-e2b",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sandbox-providers/modal",
+    "name": "@penclipai/plugin-modal",
     "publishFromCi": true
   },
   {

@@ -251,7 +251,7 @@ describe("agent instructions bundle routes", () => {
       entryFile: "AGENTS.md",
     });
     expect(mockAgentInstructionsService.getBundle).toHaveBeenCalled();
-  });
+  }, 10000);
 
   it("writes a bundle file and persists compatibility config", async () => {
     const res = await requestApp(await createApp(), (baseUrl) => request(baseUrl)

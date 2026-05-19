@@ -64,6 +64,10 @@ const EXAMPLE_PLUGIN_COPY: Record<
     description: "参考插件，在一个示例中集中演示当前 Paperclip CN 插件 API、界面挂载点、桥接动作、事件、任务、Webhook、工具、本地工作区访问和运行诊断能力。",
     descriptionKey: "pluginExamples.kitchenSink.description",
   },
+  "@penclipai/plugin-workspace-diff": {
+    description: "第一方工作区变更插件，会在工作区详情中添加由本地 Git diff 驱动的“变更”标签页。",
+    descriptionKey: "pluginExamples.workspaceDiff.description",
+  },
 };
 
 function getPluginStatusLabel(status: string, t: ReturnType<typeof useTranslation>["t"]): string {
@@ -325,17 +329,17 @@ export function PluginManager() {
         <div className="flex items-center gap-2">
           <FlaskConical className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-base font-semibold">{t("Available Plugins", { defaultValue: "Available Plugins" })}</h2>
-          <Badge variant="outline">{t("Examples", { defaultValue: "Examples" })}</Badge>
+          <Badge variant="outline">{t("Bundled", { defaultValue: "Bundled" })}</Badge>
         </div>
 
         {examplesQuery.isLoading ? (
-          <div className="text-sm text-muted-foreground">{t("Loading bundled examples...", { defaultValue: "Loading bundled examples..." })}</div>
+          <div className="text-sm text-muted-foreground">{t("Loading bundled plugins...", { defaultValue: "Loading bundled plugins..." })}</div>
         ) : examplesQuery.error ? (
-          <div className="text-sm text-destructive">{t("Failed to load bundled examples.", { defaultValue: "Failed to load bundled examples." })}</div>
+          <div className="text-sm text-destructive">{t("Failed to load bundled plugins.", { defaultValue: "Failed to load bundled plugins." })}</div>
         ) : examples.length === 0 ? (
           <div className="rounded-md border border-dashed px-4 py-3 text-sm text-muted-foreground">
-            {t("No bundled example plugins were found in this checkout.", {
-              defaultValue: "No bundled example plugins were found in this checkout.",
+            {t("No bundled plugins were found in this checkout.", {
+              defaultValue: "No bundled plugins were found in this checkout.",
             })}
           </div>
         ) : (
@@ -358,7 +362,11 @@ export function PluginManager() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium">{exampleDisplayName}</span>
-                        <Badge variant="outline">{t("Example", { defaultValue: "Example" })}</Badge>
+                        <Badge variant="outline">
+                          {example.tag === "first-party"
+                            ? t("First-party", { defaultValue: "First-party" })
+                            : t("Example", { defaultValue: "Example" })}
+                        </Badge>
                         {installedPlugin ? (
                           <Badge
                             variant={installedPlugin.status === "ready" ? "default" : "secondary"}

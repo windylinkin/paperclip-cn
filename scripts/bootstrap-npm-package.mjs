@@ -357,6 +357,19 @@ function preparePublishStaging(pkg) {
   return stagingDir;
 }
 
+function buildPackageForBootstrap(pkg, options = {}) {
+  if (typeof pkg.pkg?.scripts?.build !== "string") {
+    return false;
+  }
+
+  process.stdout.write(`Building ${pkg.name}...\n`);
+  const resolvePnpm = options.resolvePnpmInvocation ?? resolvePnpmInvocation;
+  const runBuild = options.runChecked ?? runChecked;
+  const pnpmInvocation = resolvePnpm();
+  runBuild(pnpmInvocation.command, [...pnpmInvocation.argsPrefix, "-C", pkg.dir, "run", "build"]);
+  return true;
+}
+
 function resolveTargetPackage(selector, packages = buildReleasePackagePlan()) {
   const normalizedSelector = normalizePath(selector);
   const matches = packages.filter(
@@ -455,10 +468,8 @@ function main(argv) {
     ensureNpmAuth();
   }
 
-  if (!skipBuild && typeof pkg.pkg?.scripts?.build === "string") {
-    process.stdout.write(`Building ${pkg.name}...\n`);
-    const pnpmInvocation = resolvePnpmInvocation();
-    runChecked(pnpmInvocation.command, [...pnpmInvocation.argsPrefix, "--filter", pkg.name, "build"]);
+  if (!skipBuild) {
+    buildPackageForBootstrap(pkg);
   }
 
   const stagingDir = preparePublishStaging(pkg);
@@ -500,6 +511,7 @@ if (isDirectRun) {
 }
 
 export {
+  buildPackageForBootstrap,
   buildPublishPackageJson,
   ensureNpmAuth,
   inspectNpmPackage,

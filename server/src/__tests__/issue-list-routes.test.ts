@@ -58,6 +58,7 @@ vi.mock("../services/index.js", () => ({
     syncIssue: vi.fn(async () => undefined),
     syncIssueReferences: vi.fn(async () => ({ added: [], removed: [] })),
   }),
+  issueThreadInteractionService: () => ({}),
   ISSUE_LIST_DEFAULT_LIMIT: 500,
   ISSUE_LIST_MAX_LIMIT: 1000,
   clampIssueListLimit: vi.fn((limit: number) => Math.min(1000, Math.max(1, Math.floor(limit)))),

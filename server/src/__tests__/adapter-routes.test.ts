@@ -175,6 +175,16 @@ describe("adapter routes", () => {
     expect(cursorAdapter.capabilities.supportsInstructionsBundle).toBe(true);
 
     // CN fork keeps Hermes external-only; it should not appear as a built-in adapter.
+    const grokAdapter = res.body.find((a: any) => a.type === "grok_local");
+    expect(grokAdapter).toBeDefined();
+    expect(grokAdapter.capabilities).toMatchObject({
+      supportsInstructionsBundle: true,
+      supportsSkills: true,
+      supportsLocalAgentJwt: true,
+      requiresMaterializedRuntimeSkills: true,
+    });
+
+    // CN fork keeps Hermes external-only; it should not appear as a built-in adapter.
     const hermesAdapter = res.body.find((a: any) => a.type === "hermes_local");
     expect(hermesAdapter).toBeUndefined();
   });
