@@ -32,6 +32,7 @@ import { redactCurrentUserText } from "../../log-redaction.js";
 import { redactSensitiveText } from "../../redaction.js";
 import { logActivity } from "../activity-log.js";
 import { budgetService } from "../budgets.js";
+import { isUniqueViolation } from "../db-errors.js";
 import { instanceSettingsService } from "../instance-settings.js";
 import { issueRecoveryActionService } from "../issue-recovery-actions.js";
 import { issueTreeControlService } from "../issue-tree-control.js";
@@ -246,36 +247,6 @@ function formatIssueLinksForComment(relations: Array<{ identifier?: string | nul
     .join(", ");
 }
 
-function unwrapDatabaseConflictError(error: unknown) {
-  if (!error || typeof error !== "object") return null;
-
-  const candidate = error as {
-    code?: string;
-    constraint?: string;
-    constraint_name?: string;
-    message?: string;
-    cause?: unknown;
-  };
-
-  if (
-    typeof candidate.code === "string" ||
-    typeof candidate.constraint === "string" ||
-    typeof candidate.constraint_name === "string"
-  ) {
-    return candidate;
-  }
-
-  const cause = candidate.cause;
-  if (!cause || typeof cause !== "object") return candidate;
-
-  return cause as {
-    code?: string;
-    constraint?: string;
-    constraint_name?: string;
-    message?: string;
-  };
-}
-
 function isAgentInvokable(agent: typeof agents.$inferSelect | null | undefined) {
   return Boolean(agent && !["paused", "terminated", "pending_approval"].includes(agent.status));
 }
@@ -334,18 +305,10 @@ function livenessRecoveryLeafKey(companyId: string, state: string, leafIssueId: 
 }
 
 function isUniqueLivenessRecoveryConflict(error: unknown) {
-  if (!error || typeof error !== "object") return false;
-  const maybe = error as { code?: string; constraint?: string; message?: string };
-  return maybe.code === "23505" &&
-    (
-      maybe.constraint === "issues_active_liveness_recovery_incident_uq" ||
-      maybe.constraint === "issues_active_liveness_recovery_leaf_uq" ||
-      typeof maybe.message === "string" &&
-        (
-          maybe.message.includes("issues_active_liveness_recovery_incident_uq") ||
-          maybe.message.includes("issues_active_liveness_recovery_leaf_uq")
-        )
-    );
+  return isUniqueViolation(error, [
+    "issues_active_liveness_recovery_incident_uq",
+    "issues_active_liveness_recovery_leaf_uq",
+  ]);
 }
 
 function formatDependencyPath(finding: IssueLivenessFinding) {
@@ -1287,25 +1250,11 @@ export function recoveryService(db: Db, deps: { enqueueWakeup: RecoveryWakeup })
   }
 
   function isUniqueStaleRunEvaluationConflict(error: unknown) {
-    const maybe = unwrapDatabaseConflictError(error);
-    if (!maybe) return false;
-    return maybe.code === "23505" &&
-      (
-        maybe.constraint === "issues_active_stale_run_evaluation_uq" ||
-        maybe.constraint_name === "issues_active_stale_run_evaluation_uq" ||
-        typeof maybe.message === "string" && maybe.message.includes("issues_active_stale_run_evaluation_uq")
-      );
+    return isUniqueViolation(error, "issues_active_stale_run_evaluation_uq");
   }
 
   function isUniqueStrandedIssueRecoveryConflict(error: unknown) {
-    const maybe = unwrapDatabaseConflictError(error);
-    if (!maybe) return false;
-    return maybe.code === "23505" &&
-      (
-        maybe.constraint === "issues_active_stranded_issue_recovery_uq" ||
-        maybe.constraint_name === "issues_active_stranded_issue_recovery_uq" ||
-        typeof maybe.message === "string" && maybe.message.includes("issues_active_stranded_issue_recovery_uq")
-      );
+    return isUniqueViolation(error, "issues_active_stranded_issue_recovery_uq");
   }
 
   async function ensureSourceIssueBlockedByStaleEvaluation(input: {
