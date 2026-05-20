@@ -28,6 +28,7 @@ import type {
   PluginWebhookDeliveryStatus,
 } from "@penclipai/shared";
 import { conflict, notFound } from "../errors.js";
+import { isUniqueViolation } from "./db-errors.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -38,10 +39,7 @@ import { conflict, notFound } from "../errors.js";
  * `plugins_plugin_key_idx` unique index.
  */
 function isPluginKeyConflict(error: unknown): boolean {
-  if (typeof error !== "object" || error === null) return false;
-  const err = error as { code?: string; constraint?: string; constraint_name?: string };
-  const constraint = err.constraint ?? err.constraint_name;
-  return err.code === "23505" && constraint === "plugins_plugin_key_idx";
+  return isUniqueViolation(error, "plugins_plugin_key_idx");
 }
 
 // ---------------------------------------------------------------------------

@@ -56,6 +56,7 @@ import { issueService } from "./issues.js";
 import { secretService } from "./secrets.js";
 import { getSecretProvider } from "../secrets/provider-registry.js";
 import { parseCron, validateCron } from "./cron.js";
+import { isUniqueViolation } from "./db-errors.js";
 import { heartbeatService } from "./heartbeat.js";
 import { queueIssueAssignmentWakeup, type IssueAssignmentWakeupDeps } from "./issue-assignment-wakeup.js";
 import { logActivity } from "./activity-log.js";
@@ -1261,12 +1262,7 @@ export function routineService(
           });
         } catch (error) {
           const isOpenExecutionConflict =
-            !!error &&
-            typeof error === "object" &&
-            "code" in error &&
-            (error as { code?: string }).code === "23505" &&
-            "constraint" in error &&
-            (error as { constraint?: string }).constraint === "issues_open_routine_execution_uq";
+            isUniqueViolation(error, "issues_open_routine_execution_uq");
           if (!isOpenExecutionConflict || input.routine.concurrencyPolicy === "always_enqueue") {
             throw error;
           }
