@@ -13,6 +13,22 @@ vi.mock("@/lib/router", () => ({
   ),
 }));
 
+vi.mock("react-i18next", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-i18next")>();
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string, options?: Record<string, unknown>) => {
+        const fallback = typeof options?.defaultValue === "string" ? options.defaultValue : key;
+        return fallback.replace(/\{\{(\w+)\}\}/g, (_, token: string) =>
+          String(options?.[token] ?? ""),
+        );
+      },
+      i18n: { language: "en", resolvedLanguage: "en" },
+    }),
+  };
+});
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
