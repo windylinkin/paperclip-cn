@@ -65,13 +65,20 @@ describe("resolveRuntimeLocalizationPrompt", () => {
       shell: "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
     });
 
-    expect(note).toContain("## 语言与运行时契约");
-    expect(note).toContain("所有面向用户的自然语言输出必须使用简体中文");
-    expect(note).toContain("宿主环境：Windows PowerShell。");
-    expect(note).toContain("CLI 契约：执行 Paperclip 命令一律使用 `penclip ...`");
-    expect(note).toContain("`paperclipai ...`");
-    expect(note).toContain("API 契约：优先使用 `penclip` CLI 完成 Paperclip 操作");
-    expect(note).toContain("只有在 CLI 无法覆盖时");
+    expect(note).toContain("## Paperclip Runtime Rules");
+    expect(note).toContain("Respond to users in Simplified Chinese");
+    expect(note).toContain("latest message explicitly requests another language");
+    expect(note).toContain("Preserve code, commands, paths, API fields, identifiers, logs, and quoted text verbatim.");
+    expect(note).toContain("Use `penclip` for Paperclip operations.");
+    expect(note).toContain("Call HTTP APIs only when no CLI command fits");
+    expect(note).toContain("avoid raw `curl` POST bodies");
+    expect(note).toContain("prevent non-ASCII text encoding corruption");
+    expect(note).toContain("Create files with UTF-8/Unicode filenames");
+    expect(note).toContain("non-ASCII filenames");
+    expect(note).toContain("legacy code pages");
+    expect(note).toContain("Runtime: Windows PowerShell.");
+    expect(note).not.toContain("CLI 契约");
+    expect(note).not.toContain("API 契约");
     expect(note).not.toContain("Python / Node");
   });
 
@@ -84,8 +91,10 @@ describe("resolveRuntimeLocalizationPrompt", () => {
       osRelease: "6.6.87.2-microsoft-standard-WSL2",
     });
 
-    expect(note).toContain("宿主环境：WSL bash。");
-    expect(note).toContain("优先使用 `penclip` CLI");
+    expect(note).toContain("Runtime: WSL bash.");
+    expect(note).toContain("Simplified Chinese");
+    expect(note).toContain("Use `penclip` for Paperclip operations.");
+    expect(note).toContain("UTF-8/Unicode filenames");
   });
 
   it("returns an English note with a detected POSIX shell label", () => {
@@ -95,13 +104,16 @@ describe("resolveRuntimeLocalizationPrompt", () => {
       shell: "/bin/zsh",
     });
 
-    expect(note).toContain("## Language and Runtime Contract");
-    expect(note).toContain("all user-facing natural-language output must be in English");
-    expect(note).toContain("Host runtime: zsh on darwin.");
-    expect(note).toContain("CLI contract: use `penclip ...` for Paperclip commands");
-    expect(note).toContain("`paperclipai ...`");
-    expect(note).toContain("API contract: prefer the `penclip` CLI for Paperclip operations");
-    expect(note).toContain("only call the HTTP API directly when the CLI cannot cover the action");
+    expect(note).toContain("## Paperclip Runtime Rules");
+    expect(note).toContain("Respond to users in English");
+    expect(note).toContain("Preserve code, commands, paths, API fields, identifiers, logs, and quoted text verbatim.");
+    expect(note).toContain("Use `penclip` for Paperclip operations.");
+    expect(note).toContain("Call HTTP APIs only when no CLI command fits");
+    expect(note).toContain("avoid raw `curl` POST bodies");
+    expect(note).toContain("Create files with UTF-8/Unicode filenames");
+    expect(note).toContain("Runtime: zsh on darwin.");
+    expect(note).not.toContain("CLI contract");
+    expect(note).not.toContain("API contract");
     expect(note).not.toContain("Python / Node");
   });
 });

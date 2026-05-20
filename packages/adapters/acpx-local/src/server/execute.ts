@@ -935,8 +935,10 @@ async function buildPrompt(ctx: AdapterExecutionContext, resumedSession: boolean
   const renderedPrompt = shouldUseResumeDeltaPrompt ? "" : renderTemplate(promptTemplate, templateData);
   const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
   const taskContextNote = asString(context.paperclipTaskMarkdown, "").trim();
+  const localizationPromptNote = asString(context.paperclipLocalizationPromptMarkdown, "").trim();
   const prompt = joinPromptSections([
     promptInstructionsPrefix,
+    localizationPromptNote,
     renderedBootstrapPrompt,
     wakePrompt,
     sessionHandoffNote,
@@ -953,6 +955,7 @@ async function buildPrompt(ctx: AdapterExecutionContext, resumedSession: boolean
       bootstrapPromptChars: renderedBootstrapPrompt.length,
       wakePromptChars: wakePrompt.length,
       sessionHandoffChars: sessionHandoffNote.length,
+      localizationPromptChars: localizationPromptNote.length,
       taskContextChars: taskContextNote.length,
       heartbeatPromptChars: renderedPrompt.length,
     },

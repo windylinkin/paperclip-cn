@@ -215,6 +215,33 @@ describe("acpx_local execute", () => {
     }
   });
 
+  it("injects localization guidance before ACPX wake and task prompts", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-acpx-localization-"));
+    try {
+      const runtime = new FakeRuntime({} as AcpRuntimeOptions);
+      const execute = createAcpxLocalExecutor({
+        createRuntime: () => runtime,
+      });
+      const result = await execute(buildContext(root, {
+        context: {
+          issueId: "issue-1",
+          paperclipTaskMarkdown: "Task context",
+          paperclipLocalizationPromptMarkdown: "Reply in zh-CN.",
+        },
+      }));
+
+      expect(result.exitCode).toBe(0);
+      const prompt = runtime.startInputs[0]?.text ?? "";
+      expect(prompt).toContain("Reply in zh-CN.");
+      expect(prompt).toContain("Task context");
+      expect(prompt).toContain("Do the assigned work.");
+      expect(prompt.indexOf("Reply in zh-CN.")).toBeLessThan(prompt.indexOf("Task context"));
+      expect(prompt.indexOf("Reply in zh-CN.")).toBeLessThan(prompt.indexOf("Do the assigned work."));
+    } finally {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("closes successful persistent runs by default while retaining session state", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-acpx-close-success-"));
     try {

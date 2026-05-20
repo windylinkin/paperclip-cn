@@ -487,10 +487,10 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const apiAccessNote = renderApiAccessNote(env);
   const prompt = joinPromptSections([
     instructionsPrefix,
+    localizationPromptNote,
     renderedBootstrapPrompt,
     wakePrompt,
     sessionHandoffNote,
-    localizationPromptNote,
     paperclipEnvNote,
     apiAccessNote,
     renderedPrompt,

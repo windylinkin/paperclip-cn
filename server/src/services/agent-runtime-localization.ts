@@ -119,23 +119,16 @@ function resolveRuntimeEnvironment(
   };
 }
 
-function buildZhCnRuntimeLocalizationPrompt(environment: RuntimeEnvironmentDescriptor): string {
+function buildRuntimeLocalizationPrompt(locale: UiLocale, environment: RuntimeEnvironmentDescriptor): string {
+  const outputLanguage = locale === "en" ? "English" : "Simplified Chinese";
+  const runtimeLabel = locale === "en" ? environment.labelEn : environment.labelZh;
   return [
-    "## 语言与运行时契约",
-    "- 输出契约：除非用户本轮明确要求其他语言，所有面向用户的自然语言输出必须使用简体中文；代码、命令、路径、API 字段名和日志原文保持原样。",
-    `- 宿主环境：${environment.labelZh}。`,
-    "- CLI 契约：执行 Paperclip 命令一律使用 `penclip ...`；仅在逐字引用用户文本、日志或历史文档时保留 `paperclipai ...`。",
-    "- API 契约：优先使用 `penclip` CLI 完成 Paperclip 操作；只有在 CLI 无法覆盖时，才直接调用 API，并确保带上必需的认证与运行标头。",
-  ].join("\n");
-}
-
-function buildEnRuntimeLocalizationPrompt(environment: RuntimeEnvironmentDescriptor): string {
-  return [
-    "## Language and Runtime Contract",
-    "- Output contract: unless the current user request explicitly asks for another language, all user-facing natural-language output must be in English. Keep code, commands, file paths, API field names, and raw logs verbatim.",
-    `- Host runtime: ${environment.labelEn}.`,
-    "- CLI contract: use `penclip ...` for Paperclip commands; keep `paperclipai ...` only in verbatim quotes from user text, logs, or historical docs.",
-    "- API contract: prefer the `penclip` CLI for Paperclip operations; only call the HTTP API directly when the CLI cannot cover the action, and always include the required auth and run headers.",
+    "## Paperclip Runtime Rules",
+    `- Respond to users in ${outputLanguage} unless their latest message explicitly requests another language.`,
+    "- Preserve code, commands, paths, API fields, identifiers, logs, and quoted text verbatim.",
+    "- Use `penclip` for Paperclip operations. Call HTTP APIs only when no CLI command fits; avoid raw `curl` POST bodies for comments/documents to prevent non-ASCII text encoding corruption.",
+    "- Create files with UTF-8/Unicode filenames; avoid commands that route non-ASCII filenames through legacy code pages.",
+    `- Runtime: ${runtimeLabel}.`,
   ].join("\n");
 }
 
@@ -173,7 +166,5 @@ export function resolveRuntimeLocalizationPrompt(
   input: ResolveRuntimeLocalizationPromptInput,
 ): string {
   const environment = resolveRuntimeEnvironment(input);
-  return input.locale === "en"
-    ? buildEnRuntimeLocalizationPrompt(environment)
-    : buildZhCnRuntimeLocalizationPrompt(environment);
+  return buildRuntimeLocalizationPrompt(input.locale, environment);
 }

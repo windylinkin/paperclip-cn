@@ -1195,10 +1195,9 @@ describe("codex execute", () => {
       expect(capture.argv).toEqual(expect.arrayContaining(["exec", "--json", "-"]));
       expect(capture.prompt).toContain("Follow the paperclip heartbeat.");
       expect(capture.prompt).toContain("Reply in zh-CN.");
-      expect(capture.prompt.indexOf("Follow the paperclip heartbeat.")).toBeLessThan(
-        capture.prompt.indexOf("Reply in zh-CN."),
+      expect(capture.prompt.indexOf("Reply in zh-CN.")).toBeLessThan(
+        capture.prompt.indexOf("Follow the paperclip heartbeat."),
       );
-      expect(capture.prompt.trimEnd().endsWith("Reply in zh-CN.")).toBe(true);
       expect(capture.paperclipEnvKeys).toEqual(
         expect.arrayContaining([
           "PAPERCLIP_AGENT_ID",
