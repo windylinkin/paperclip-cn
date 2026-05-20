@@ -13,6 +13,7 @@ import {
 import { logger } from "../middleware/logger.js";
 import { logActivity } from "./activity-log.js";
 import { budgetService } from "./budgets.js";
+import { isUniqueViolation } from "./db-errors.js";
 import { issueService } from "./issues.js";
 import {
   recoveryAssigneeAdapterOverrides,
@@ -691,19 +692,14 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
         goalId: evidence.sourceIssue.goalId,
         billingCode: evidence.sourceIssue.billingCode,
         assigneeAgentId: ownerAgentId,
-        assigneeAdapterOverrides: recoveryAssigneeAdapterOverrides(),
+        assigneeAdapterOverrides: recoveryAssigneeAdapterOverrides("status_only"),
         originKind: PRODUCTIVITY_REVIEW_ORIGIN_KIND,
         originId: evidence.sourceIssue.id,
         originFingerprint: productivityReviewFingerprint(evidence.sourceIssue.id),
         requestDepth: clampIssueRequestDepth(evidence.sourceIssue.requestDepth + 1),
       });
     } catch (error) {
-      const maybe = error as { code?: string; constraint?: string; message?: string };
-      const uniqueConflict = maybe.code === "23505" &&
-        (
-          maybe.constraint === "issues_active_productivity_review_uq" ||
-          typeof maybe.message === "string" && maybe.message.includes("issues_active_productivity_review_uq")
-        );
+      const uniqueConflict = isUniqueViolation(error, "issues_active_productivity_review_uq");
       if (!uniqueConflict) throw error;
       const raced = await findOpenProductivityReview(evidence.sourceIssue.companyId, evidence.sourceIssue.id);
       if (!raced) throw error;
@@ -741,7 +737,7 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
           issueId: review.id,
           sourceIssueId: evidence.sourceIssue.id,
           trigger: evidence.trigger,
-        }),
+        }, "status_only"),
         requestedByActorType: "system",
         requestedByActorId: "productivity_review",
         contextSnapshot: withRecoveryModelProfileHint({
@@ -751,7 +747,7 @@ export function productivityReviewService(db: Db, deps?: { enqueueWakeup?: Enque
           source: PRODUCTIVITY_REVIEW_ORIGIN_KIND,
           sourceIssueId: evidence.sourceIssue.id,
           productivityReviewTrigger: evidence.trigger,
-        }),
+        }, "status_only"),
       });
     }
 

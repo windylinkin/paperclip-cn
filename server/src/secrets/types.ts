@@ -1,4 +1,9 @@
-import type { DeploymentMode, SecretProvider, SecretProviderDescriptor } from "@penclipai/shared";
+import type {
+  DeploymentMode,
+  SecretProvider,
+  SecretProviderConfigDiscoveryPreviewResult,
+  SecretProviderDescriptor,
+} from "@penclipai/shared";
 
 export interface StoredSecretVersionMaterial {
   [key: string]: unknown;
@@ -151,6 +156,13 @@ export interface SecretProviderModule {
     nextToken?: string | null;
     pageSize?: number;
   }): Promise<RemoteSecretListResult>;
+  discoverProviderConfigs?(input: {
+    companyId: string;
+    providerConfig: SecretProviderVaultRuntimeConfig;
+    query?: string | null;
+    nextToken?: string | null;
+    pageSize?: number;
+  }): Promise<SecretProviderConfigDiscoveryPreviewResult>;
   resolveVersion(input: {
     material: StoredSecretVersionMaterial;
     externalRef: string | null;

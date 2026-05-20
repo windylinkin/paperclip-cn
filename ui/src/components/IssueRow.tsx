@@ -178,6 +178,7 @@ export function IssueRow({
           {showUnreadDot ? (
             <button
               type="button"
+              data-slot="icon-button"
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -207,6 +208,7 @@ export function IssueRow({
           ) : onArchive ? (
             <button
               type="button"
+              data-slot="icon-button"
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();

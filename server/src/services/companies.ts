@@ -39,6 +39,7 @@ import {
   companyMemberships,
 } from "@penclipai/db";
 import { notFound, unprocessable } from "../errors.js";
+import { isUniqueViolation } from "./db-errors.js";
 import { environmentService } from "./environments.js";
 
 export function companyService(db: Db) {
@@ -134,16 +135,7 @@ export function companyService(db: Db) {
   }
 
   function isIssuePrefixConflict(error: unknown) {
-    const constraint = typeof error === "object" && error !== null && "constraint" in error
-      ? (error as { constraint?: string }).constraint
-      : typeof error === "object" && error !== null && "constraint_name" in error
-        ? (error as { constraint_name?: string }).constraint_name
-        : undefined;
-    return typeof error === "object"
-      && error !== null
-      && "code" in error
-      && (error as { code?: string }).code === "23505"
-      && constraint === "companies_issue_prefix_idx";
+    return isUniqueViolation(error, "companies_issue_prefix_idx");
   }
 
   async function createCompanyWithUniquePrefix(data: typeof companies.$inferInsert) {
