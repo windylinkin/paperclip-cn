@@ -12,29 +12,33 @@ export type ActiveRecoveryDisplayState = Exclude<RecoveryDisplayState, "resolved
 
 export const RECOVERY_CHIP_DEFAULT_TONE: Record<
   ActiveRecoveryDisplayState,
-  { className: string; icon: typeof TriangleAlert; label: string }
+  { className: string; icon: typeof TriangleAlert; label: string; labelKey: string }
 > = {
   needed: {
     className:
       "border-amber-500/60 bg-amber-500/15 text-amber-700 dark:text-amber-300",
     icon: TriangleAlert,
     label: "Recovery needed",
+    labelKey: "recoveryChip.state.needed",
   },
   in_progress: {
     className:
       "border-sky-500/60 bg-sky-500/15 text-sky-700 dark:text-sky-300",
     icon: RefreshCw,
     label: "Recovery in progress",
+    labelKey: "recoveryChip.state.in_progress",
   },
   observe_only: {
     className: "border-border bg-muted text-muted-foreground",
     icon: Eye,
     label: "Observing active run",
+    labelKey: "recoveryChip.state.observe_only",
   },
   escalated: {
     className: "border-red-500/60 bg-red-500/15 text-red-700 dark:text-red-300",
     icon: OctagonAlert,
     label: "Recovery escalated",
+    labelKey: "recoveryChip.state.escalated",
   },
 };
 

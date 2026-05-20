@@ -27,6 +27,14 @@ function findDuplicateKeys(text: string): string[] {
   return [...duplicates].sort((left, right) => left.localeCompare(right));
 }
 
+function readLocaleMessages(locale: "en" | "zh-CN"): Record<string, string> {
+  const localeFile = localeFiles.find((file) => path.basename(path.dirname(file)) === locale);
+  if (!localeFile) {
+    throw new Error(`Missing locale file for ${locale}`);
+  }
+  return JSON.parse(readFileSync(localeFile, "utf8")) as Record<string, string>;
+}
+
 describe("locale catalogs", () => {
   for (const localeFile of localeFiles) {
     it(`keeps ${path.basename(path.dirname(localeFile))} free of duplicate keys`, () => {
@@ -36,4 +44,27 @@ describe("locale catalogs", () => {
       expect(findDuplicateKeys(text)).toEqual([]);
     });
   }
+
+  it("keeps recovery action card copy localized in zh-CN", () => {
+    const en = readLocaleMessages("en");
+    const zh = readLocaleMessages("zh-CN");
+    const requiredKeys = [
+      "issueRecoveryAction.state.needed",
+      "issueRecoveryAction.kind.stranded_assigned_issue",
+      "issueRecoveryAction.headline.stranded_assigned_issue",
+      "issueRecoveryAction.metadata.nextAction",
+      "issueRecoveryAction.wake.correctiveWakeQueued",
+      "issueRecoveryAction.resolve.trigger",
+      "recoveryChip.state.needed",
+    ];
+
+    for (const key of requiredKeys) {
+      expect(en[key], `missing en key ${key}`).toBeTruthy();
+      expect(zh[key], `missing zh-CN key ${key}`).toBeTruthy();
+    }
+    expect(zh["issueRecoveryAction.headline.stranded_assigned_issue"]).toContain("已重试");
+    expect(zh["issueRecoveryAction.headline.stranded_assigned_issue"]).not.toBe(
+      en["issueRecoveryAction.headline.stranded_assigned_issue"],
+    );
+  });
 });

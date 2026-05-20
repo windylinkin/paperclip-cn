@@ -16,21 +16,27 @@ import {
 } from "../lib/recovery-display";
 
 function BlockerRecoveryIndicator({ action }: { action: IssueRecoveryAction }) {
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const state = deriveActiveRecoveryDisplayState(action);
   if (!state) return null;
   const tone = RECOVERY_CHIP_DEFAULT_TONE[state];
   const Icon = tone.icon;
+  const label = t(tone.labelKey, { defaultValue: tone.label });
+  const title = t("recoveryChip.openSourceIssueTitle", {
+    label,
+    defaultValue: "{{label}} - open the source issue to act.",
+  });
   return (
     <span
       data-testid="issue-blocked-notice-recovery-indicator"
       data-recovery-state={state}
       role="status"
-      aria-label={tone.label}
-      title={`${tone.label} — open the source issue to act.`}
+      aria-label={label}
+      title={title}
       className={`inline-flex shrink-0 items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${tone.className}`}
     >
       <Icon className="h-2.5 w-2.5" aria-hidden />
-      {tone.label}
+      {label}
     </span>
   );
 }
