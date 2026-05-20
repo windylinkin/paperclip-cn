@@ -38,6 +38,16 @@ vi.mock("@/lib/router", () => ({
   },
 }));
 
+vi.mock("react-i18next", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-i18next")>();
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
+    }),
+  };
+});
+
 vi.mock("../context/SidebarContext", () => ({
   useSidebar: () => ({ isMobile: false, setSidebarOpen: vi.fn() }),
 }));
@@ -81,12 +91,12 @@ async function findPluginLinks(container: HTMLElement, expectedCount: number) {
   return Array.from(container.querySelectorAll<HTMLAnchorElement>('a[href^="/instance/settings/plugins/"]'));
 }
 
-function renderSidebar(container: HTMLElement) {
+async function renderSidebar(container: HTMLElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 } },
   });
   const root = createRoot(container);
-  act(() => {
+  await act(async () => {
     root.render(
       <QueryClientProvider client={queryClient}>
         <InstanceSidebar />
@@ -155,7 +165,7 @@ describe("InstanceSidebar", () => {
     });
     mockPluginsApi.list.mockResolvedValue([sandboxPlugin, regularPlugin]);
 
-    const rendered = renderSidebar(container);
+    const rendered = await renderSidebar(container);
     root = rendered.root;
     queryClient = rendered.queryClient;
     await flushReact();
@@ -193,7 +203,7 @@ describe("InstanceSidebar", () => {
     });
     mockPluginsApi.list.mockResolvedValue([hybridPlugin]);
 
-    const rendered = renderSidebar(container);
+    const rendered = await renderSidebar(container);
     root = rendered.root;
     queryClient = rendered.queryClient;
     await flushReact();
@@ -217,7 +227,7 @@ describe("InstanceSidebar", () => {
       }),
     ]);
 
-    const rendered = renderSidebar(container);
+    const rendered = await renderSidebar(container);
     root = rendered.root;
     queryClient = rendered.queryClient;
     await flushReact();
@@ -261,7 +271,7 @@ describe("InstanceSidebar", () => {
       }),
     ]);
 
-    const rendered = renderSidebar(container);
+    const rendered = await renderSidebar(container);
     root = rendered.root;
     queryClient = rendered.queryClient;
     await flushReact();
