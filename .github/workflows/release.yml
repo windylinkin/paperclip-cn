@@ -74,7 +74,6 @@ jobs:
     environment: npm-canary
     permissions:
       contents: write
-      id-token: write
 
     steps:
       - name: Checkout repository
@@ -87,9 +86,8 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
-
-      - name: Ensure npm supports trusted publishing
-        run: npm install -g 'npm@^11.5.1'
+          registry-url: https://registry.npmjs.org
+          always-auth: true
 
       - name: Setup pnpm
         run: |
@@ -110,19 +108,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Configure npm token auth
+      - name: Verify npm auth
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
-            {
-              echo "registry=https://registry.npmjs.org/"
-              echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}"
-            } > "$HOME/.npmrc"
-            npm whoami
-          else
-            echo "No NPM_TOKEN configured; release.sh will use trusted publishing."
-          fi
+          cat <<EOF > "$HOME/.npmrc"
+          registry=https://registry.npmjs.org/
+          //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
+          always-auth=true
+          EOF
+          npm whoami
 
       - name: Publish canary
         env:
@@ -242,7 +237,6 @@ jobs:
     environment: npm-stable
     permissions:
       contents: write
-      id-token: write
 
     steps:
       - name: Checkout repository
@@ -256,9 +250,8 @@ jobs:
         with:
           node-version: 24
           package-manager-cache: false
-
-      - name: Ensure npm supports trusted publishing
-        run: npm install -g 'npm@^11.5.1'
+          registry-url: https://registry.npmjs.org
+          always-auth: true
 
       - name: Setup pnpm
         run: |
@@ -276,19 +269,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Configure npm token auth
+      - name: Verify npm auth
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
-            {
-              echo "registry=https://registry.npmjs.org/"
-              echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}"
-            } > "$HOME/.npmrc"
-            npm whoami
-          else
-            echo "No NPM_TOKEN configured; release.sh will use trusted publishing."
-          fi
+          cat <<EOF > "$HOME/.npmrc"
+          registry=https://registry.npmjs.org/
+          //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
+          always-auth=true
+          EOF
+          npm whoami
 
       - name: Publish stable
         env:
