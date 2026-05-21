@@ -110,9 +110,24 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Configure npm token auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+            {
+              echo "registry=https://registry.npmjs.org/"
+              echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}"
+            } > "$HOME/.npmrc"
+            npm whoami
+          else
+            echo "No NPM_TOKEN configured; release.sh will use trusted publishing."
+          fi
+
       - name: Publish canary
         env:
           GITHUB_ACTIONS: "true"
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: ./scripts/release.sh canary --skip-verify
 
       - name: Push canary tag
@@ -261,9 +276,24 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Configure npm token auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+            {
+              echo "registry=https://registry.npmjs.org/"
+              echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}"
+            } > "$HOME/.npmrc"
+            npm whoami
+          else
+            echo "No NPM_TOKEN configured; release.sh will use trusted publishing."
+          fi
+
       - name: Publish stable
         env:
           GITHUB_ACTIONS: "true"
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           args=(stable --skip-verify)
           if [ -n "${{ inputs.stable_date }}" ]; then
