@@ -88,7 +88,9 @@ jobs:
           node-version: 24
           package-manager-cache: false
           registry-url: https://registry.npmjs.org
-          always-auth: true
+
+      - name: Ensure npm supports trusted publishing
+        run: npm install -g 'npm@^11.5.1'
 
       - name: Setup pnpm
         run: |
@@ -109,21 +111,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Verify npm auth
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          cat <<EOF > "$HOME/.npmrc"
-          registry=https://registry.npmjs.org/
-          //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
-          always-auth=true
-          EOF
-          npm whoami
-
       - name: Publish canary
         env:
           GITHUB_ACTIONS: "true"
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: ./scripts/release.sh canary --skip-verify
 
       - name: Push canary tag
@@ -253,7 +243,9 @@ jobs:
           node-version: 24
           package-manager-cache: false
           registry-url: https://registry.npmjs.org
-          always-auth: true
+
+      - name: Ensure npm supports trusted publishing
+        run: npm install -g 'npm@^11.5.1'
 
       - name: Setup pnpm
         run: |
@@ -271,21 +263,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Verify npm auth
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          cat <<EOF > "$HOME/.npmrc"
-          registry=https://registry.npmjs.org/
-          //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
-          always-auth=true
-          EOF
-          npm whoami
-
       - name: Publish stable
         env:
           GITHUB_ACTIONS: "true"
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           args=(stable --skip-verify)
           if [ -n "${{ inputs.stable_date }}" ]; then
