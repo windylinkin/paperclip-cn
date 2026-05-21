@@ -4,6 +4,7 @@ import { trackErrorHandlerCrash } from "@penclipai/shared/telemetry";
 import { HttpError } from "../errors.js";
 import { translate as translateServer } from "../i18n.js";
 import { getTelemetryClient } from "../telemetry.js";
+import { COMPANY_IMPORT_API_PATH } from "../routes/company-import-paths.js";
 
 export interface ErrorContext {
   error: { message: string; stack?: string; name?: string; details?: unknown; raw?: unknown };
@@ -99,7 +100,17 @@ export function errorHandler(
     rootError,
   );
 
-  res.status(500).json({ error: translate("errors.internalServer") });
   const tc = getTelemetryClient();
   if (tc) trackErrorHandlerCrash(tc, { errorCode: rootError.name });
+
+  res.status(500).json({
+    error: translate("errors.internalServer"),
+    ...(shouldExposeTrustedCloudTenantImportError(req) ? { message: rootError.message } : {}),
+  });
+}
+
+function shouldExposeTrustedCloudTenantImportError(req: Request) {
+  return req.actor?.source === "cloud_tenant"
+    && req.method === "POST"
+    && req.originalUrl.split("?")[0] === COMPANY_IMPORT_API_PATH;
 }
