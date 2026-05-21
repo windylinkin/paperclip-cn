@@ -274,7 +274,7 @@ if [ "$dry_run" = true ]; then
 else
   release_info "==> Step 5/7: Publishing packages to npm..."
   npm_publish_args=(publish --tag "$DIST_TAG" --access public)
-  if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+  if [ "${GITHUB_ACTIONS:-}" = "true" ] && [ -z "${NODE_AUTH_TOKEN:-}" ]; then
     npm_publish_args+=(--provenance)
   fi
 
