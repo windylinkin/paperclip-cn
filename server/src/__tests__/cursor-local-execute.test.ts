@@ -253,13 +253,14 @@ describe("cursor execute", () => {
       expect(capture.prompt).toContain("Paperclip runtime note:");
       expect(capture.prompt).toContain("PAPERCLIP_API_KEY");
       expect(capture.prompt).toContain("Reply in zh-CN.");
-      expect(capture.prompt.indexOf("Paperclip runtime note:")).toBeLessThan(
-        capture.prompt.indexOf("Reply in zh-CN."),
+      expect(capture.prompt.indexOf("Reply in zh-CN.")).toBeLessThan(
+        capture.prompt.indexOf("Paperclip runtime note:"),
       );
-      expect(capture.prompt.trimEnd().endsWith("Reply in zh-CN.")).toBe(true);
       expect(invocationPrompt).toContain("Paperclip runtime note:");
       expect(invocationPrompt).toContain("PAPERCLIP_API_URL");
-      expect(invocationPrompt.trimEnd().endsWith("Reply in zh-CN.")).toBe(true);
+      expect(invocationPrompt.indexOf("Reply in zh-CN.")).toBeLessThan(
+        invocationPrompt.indexOf("Paperclip runtime note:"),
+      );
     } finally {
       if (previousHome === undefined) {
         delete process.env.HOME;

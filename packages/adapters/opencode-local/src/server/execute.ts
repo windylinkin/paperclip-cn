@@ -535,11 +535,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
     const localizationPromptNote = asString(context.paperclipLocalizationPromptMarkdown, "").trim();
     const prompt = joinPromptSections([
       instructionsPrefix,
+      localizationPromptNote,
       renderedBootstrapPrompt,
       wakePrompt,
       sessionHandoffNote,
       renderedPrompt,
-      localizationPromptNote,
     ]);
     const promptMetrics = {
       promptChars: prompt.length,

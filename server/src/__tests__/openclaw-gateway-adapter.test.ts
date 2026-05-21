@@ -422,6 +422,7 @@ describe("openclaw gateway adapter execute", () => {
               issueId: "issue-123",
               wakeReason: "issue_assigned",
               issueIds: ["issue-123"],
+              paperclipLocalizationPromptMarkdown: "Reply in zh-CN.",
               paperclipWorkspace: {
                 cwd: "/tmp/worktrees/pap-123",
                 strategy: "git_worktree",
@@ -491,6 +492,10 @@ describe("openclaw gateway adapter execute", () => {
       expect(payload?.idempotencyKey).toBe("run-123");
       expect(payload?.sessionKey).toBe("paperclip:issue:issue-123");
       expect(String(payload?.message ?? "")).toContain("wake now");
+      expect(String(payload?.message ?? "")).toContain("Reply in zh-CN.");
+      expect(String(payload?.message ?? "").indexOf("Reply in zh-CN.")).toBeLessThan(
+        String(payload?.message ?? "").indexOf("Run this procedure now."),
+      );
       expect(String(payload?.message ?? "")).toContain("PAPERCLIP_RUN_ID=run-123");
       expect(String(payload?.message ?? "")).toContain("PAPERCLIP_TASK_ID=task-123");
       expect(String(payload?.message ?? "")).toContain("## Paperclip Wake Payload");

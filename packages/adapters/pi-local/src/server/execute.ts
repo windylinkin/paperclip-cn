@@ -589,11 +589,11 @@ export async function execute(ctx: AdapterExecutionContext): Promise<AdapterExec
   const sessionHandoffNote = asString(context.paperclipSessionHandoffMarkdown, "").trim();
   const localizationPromptNote = asString(context.paperclipLocalizationPromptMarkdown, "").trim();
   const userPrompt = joinPromptSections([
+    localizationPromptNote,
     renderedBootstrapPrompt,
     wakePrompt,
     sessionHandoffNote,
     renderedHeartbeatPrompt,
-    localizationPromptNote,
   ]);
   const promptMetrics = {
     systemPromptChars: renderedSystemPromptExtension.length,

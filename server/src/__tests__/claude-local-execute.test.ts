@@ -634,10 +634,9 @@ describe("claude execute", () => {
       expect(loggedEnv.PAPERCLIP_RESOLVED_COMMAND).toBe(commandPath);
       expect(capture.prompt).toContain("Follow the paperclip heartbeat.");
       expect(capture.prompt).toContain("Reply in zh-CN.");
-      expect(capture.prompt.indexOf("Follow the paperclip heartbeat.")).toBeLessThan(
-        capture.prompt.indexOf("Reply in zh-CN."),
+      expect(capture.prompt.indexOf("Reply in zh-CN.")).toBeLessThan(
+        capture.prompt.indexOf("Follow the paperclip heartbeat."),
       );
-      expect(capture.prompt.trimEnd().endsWith("Reply in zh-CN.")).toBe(true);
     } finally {
       if (previousHome === undefined) delete process.env.HOME;
       else process.env.HOME = previousHome;
