@@ -58,6 +58,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Verify published CLI entrypoint
+        env:
+          PAPERCLIPAI_VERSION: ${{ inputs.paperclip_version }}
+        run: |
+          set -euo pipefail
+          prefix="$(mktemp -d)"
+          trap 'rm -rf "$prefix"' EXIT
+          npm install --global --prefix "$prefix" "penclip@${PAPERCLIPAI_VERSION}"
+          node "$prefix/lib/node_modules/penclip/dist/index.js" --version
+          "$prefix/bin/penclip" --version
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
