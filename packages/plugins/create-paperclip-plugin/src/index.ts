@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -89,8 +88,64 @@ function runPnpm(args: string[], cwd: string) {
   });
 }
 
+function packageNameToPathSegments(packageName: string): string[] {
+  return packageName.split("/");
+}
+
+function readPackageName(packageJsonPath: string): string | undefined {
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8")) as { name?: string };
+    return packageJson.name;
+  } catch {
+    return undefined;
+  }
+}
+
+function findPackageRootInNodeModules(packageName: string, startDir: string): string | null {
+  let currentDir = path.resolve(startDir);
+  const packagePathSegments = packageNameToPathSegments(packageName);
+
+  while (true) {
+    const candidates = [
+      path.join(currentDir, ...packagePathSegments),
+      path.join(currentDir, "node_modules", ...packagePathSegments),
+    ];
+    for (const candidate of candidates) {
+      const packageJsonPath = path.join(candidate, "package.json");
+      if (fs.existsSync(packageJsonPath) && readPackageName(packageJsonPath) === packageName) {
+        return candidate;
+      }
+    }
+
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      return null;
+    }
+    currentDir = parentDir;
+  }
+}
+
+function getPackagePathFromMonorepoOrNodeModules(
+  packageName: string,
+  monorepoPackagePath: string,
+  nodeModulesStartDir = path.dirname(fileURLToPath(import.meta.url)),
+): string {
+  const monorepoPackageJsonPath = path.join(monorepoPackagePath, "package.json");
+  if (fs.existsSync(monorepoPackageJsonPath) && readPackageName(monorepoPackageJsonPath) === packageName) {
+    return monorepoPackagePath;
+  }
+
+  const installedPackagePath = findPackageRootInNodeModules(packageName, nodeModulesStartDir);
+  if (installedPackagePath) {
+    return installedPackagePath;
+  }
+
+  throw new Error(`Could not locate ${packageName}. Pass --sdk-path from a Paperclip checkout or install the published SDK package.`);
+}
+
 function getLocalSdkPackagePath(): string {
-  return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "sdk");
+  const monorepoPackagePath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "sdk");
+  return getPackagePathFromMonorepoOrNodeModules("@penclipai/plugin-sdk", monorepoPackagePath);
 }
 
 function getRepoRootFromSdkPath(sdkPath: string): string {
@@ -98,7 +153,12 @@ function getRepoRootFromSdkPath(sdkPath: string): string {
 }
 
 function getLocalSharedPackagePath(sdkPath: string): string {
-  return path.resolve(getRepoRootFromSdkPath(sdkPath), "packages", "shared");
+  const monorepoPackagePath = path.resolve(getRepoRootFromSdkPath(sdkPath), "packages", "shared");
+  return getPackagePathFromMonorepoOrNodeModules("@penclipai/shared", monorepoPackagePath, sdkPath);
+}
+
+function isInNodeModules(targetPath: string): boolean {
+  return path.resolve(targetPath).split(path.sep).includes("node_modules");
 }
 
 function isInsideDir(targetPath: string, parentPath: string): boolean {
@@ -294,7 +354,8 @@ export function scaffoldPluginProject(options: ScaffoldPluginOptions): string {
   const localSharedPath = getLocalSharedPackagePath(localSdkPath);
   const repoRoot = getRepoRootFromSdkPath(localSdkPath);
   const useWorkspaceSdk = isInsideDir(outputDir, repoRoot);
-  const usePublishedPackages = options.publishedPackages === true && !useWorkspaceSdk;
+  const usePublishedPackages =
+    !useWorkspaceSdk && (options.publishedPackages === true || (options.sdkPath === undefined && isInNodeModules(localSdkPath)));
   const sdkVersion = JSON.parse(fs.readFileSync(path.join(localSdkPath, "package.json"), "utf8")).version ?? "latest";
   const sharedVersion = JSON.parse(fs.readFileSync(path.join(localSharedPath, "package.json"), "utf8")).version ?? "latest";
 
@@ -874,45 +935,41 @@ penclip plugin install ${shellQuote(toPosixPath(outputDir))}
   return outputDir;
 }
 
-function parseArg(name: string): string | undefined {
-  const index = process.argv.indexOf(name);
+function parseArg(argv: string[], name: string): string | undefined {
+  const index = argv.indexOf(name);
   if (index === -1) return undefined;
-  return process.argv[index + 1];
+  return argv[index + 1];
 }
 
-function hasFlag(name: string): boolean {
-  return process.argv.includes(name);
+function hasFlag(argv: string[], name: string): boolean {
+  return argv.includes(name);
 }
 
 /** CLI wrapper for `scaffoldPluginProject`. */
-function runCli() {
-  const pluginName = process.argv[2];
+export function runCreatePaperclipPluginCli(argv = process.argv) {
+  const pluginName = argv[2];
   if (!pluginName) {
     // eslint-disable-next-line no-console
     console.error("Usage: create-paperclip-plugin <name> [--template default|connector|workspace] [--output <dir>] [--sdk-path <paperclip-sdk-path>] [--published]");
     process.exit(1);
   }
 
-  const template = (parseArg("--template") ?? "default") as PluginTemplate;
-  const outputRoot = parseArg("--output") ?? process.cwd();
+  const template = (parseArg(argv, "--template") ?? "default") as PluginTemplate;
+  const outputRoot = parseArg(argv, "--output") ?? process.cwd();
   const targetDir = path.resolve(outputRoot, packageToDirName(pluginName));
 
   const out = scaffoldPluginProject({
     pluginName,
     outputDir: targetDir,
     template,
-    displayName: parseArg("--display-name"),
-    description: parseArg("--description"),
-    author: parseArg("--author"),
-    category: parseArg("--category") as ScaffoldPluginOptions["category"] | undefined,
-    sdkPath: parseArg("--sdk-path"),
-    publishedPackages: hasFlag("--published"),
+    displayName: parseArg(argv, "--display-name"),
+    description: parseArg(argv, "--description"),
+    author: parseArg(argv, "--author"),
+    category: parseArg(argv, "--category") as ScaffoldPluginOptions["category"] | undefined,
+    sdkPath: parseArg(argv, "--sdk-path"),
+    publishedPackages: hasFlag(argv, "--published"),
   });
 
   // eslint-disable-next-line no-console
   console.log(`Created plugin scaffold at ${out}`);
-}
-
-if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
-  runCli();
 }

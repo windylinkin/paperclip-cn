@@ -47,7 +47,7 @@ If you explicitly want published npm dependencies instead of local snapshots:
 
 ```bash
 pnpm --filter @penclipai/create-paperclip-plugin build
-node packages/plugins/create-paperclip-plugin/dist/index.js @yourscope/plugin-name \
+node packages/plugins/create-paperclip-plugin/dist/cli.js @yourscope/plugin-name \
   --output /absolute/path/to/plugin-repos \
   --sdk-path /absolute/path/to/paperclip/packages/plugins/sdk \
   --published
